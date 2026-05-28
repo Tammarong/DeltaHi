@@ -1,0 +1,37 @@
+{
+  "name": "friends-get-friends-referral-web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "db:down": "docker compose down",
+    "db:reset": "docker compose down -v",
+    "db:seed": "prisma db execute --schema prisma/schema.prisma --file prisma/example-data.sql",
+    "db:setup": "npm run db:up && npm run prisma:push && npm run db:seed",
+    "db:studio": "prisma studio",
+    "db:up": "docker compose up -d --wait postgres",
+    "dev": "nuxt dev",
+    "dev:clean": "nuxt cleanup && nuxt dev",
+    "generate": "nuxt generate",
+    "postinstall": "prisma generate",
+    "prisma:deploy": "prisma migrate deploy",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:push": "prisma db push",
+    "prisma:validate": "prisma validate",
+    "test": "node --test tests/*.test.mjs",
+    "typecheck": "nuxt typecheck"
+  },
+  "dependencies": {
+    "@nuxtjs/tailwindcss": "^6.12.2",
+    "@prisma/client": "^5.22.0",
+    "nuxt": "^3.14.1592",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "prisma": "^5.22.0",
+    "typescript": "^5.6.3",
+    "vue-tsc": "^2.1.10"
+  }
+}
