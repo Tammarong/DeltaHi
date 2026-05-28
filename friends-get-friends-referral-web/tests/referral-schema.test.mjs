@@ -62,6 +62,35 @@ test('shareapp referral route exists at the top-level Nuxt route path', () => {
   assert.match(readProjectFile('server/utils/referral.ts'), /\/shareapp\/\$\{employeeShareId\}/)
 })
 
+test('first page automatically renders a QR when main app sends employeeShareId', () => {
+  const indexPage = readProjectFile('pages/index.vue')
+
+  assert.match(indexPage, /const route = useRoute\(\)/)
+  assert.match(indexPage, /import QRCode from 'qrcode'/)
+  assert.match(indexPage, /const employeeShareIdFromQuery = computed/)
+  assert.match(indexPage, /route\.query\.employeeShareId/)
+  assert.match(indexPage, /type GetEmployeeShareResponse =/)
+  assert.match(indexPage, /async function loadShareQrById\(employeeShareId: string\)/)
+  assert.match(indexPage, /\$fetch<GetEmployeeShareResponse>\(\s*`\/api\/shares\/\$\{encodeURIComponent\(employeeShareId\)\}`/)
+  assert.match(indexPage, /await renderShareQr\(share\)/)
+  assert.match(indexPage, /onMounted\(\(\) =>/)
+  assert.match(indexPage, /void loadShareQrById\(employeeShareIdFromQuery\.value\)/)
+  assert.match(indexPage, /Loading referral QR/)
+  assert.match(indexPage, /Referral QR is unavailable\./)
+  assert.doesNotMatch(indexPage, /Create referral QR/)
+  assert.doesNotMatch(indexPage, /User ID/)
+  assert.doesNotMatch(indexPage, /Employee ID/)
+  assert.doesNotMatch(indexPage, /Create QR/)
+  assert.doesNotMatch(indexPage, /api\/employee-shares/)
+  assert.doesNotMatch(indexPage, /normalizedUserId/)
+  assert.doesNotMatch(indexPage, /normalizedEmployeeId/)
+  assert.doesNotMatch(indexPage, /ServiceUser/)
+
+  const packageJson = JSON.parse(readProjectFile('package.json'))
+  assert.equal(packageJson.dependencies.qrcode, '^1.5.4')
+  assert.equal(packageJson.devDependencies['@types/qrcode'], '^1.5.6')
+})
+
 test('share page opens the download popup instead of navigating to the download page', () => {
   const sharePage = readProjectFile('pages/shareapp/[shareId].vue')
 
