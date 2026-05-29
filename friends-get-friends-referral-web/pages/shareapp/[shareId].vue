@@ -2,9 +2,11 @@
 import type { TutorialOs } from '../../shared/schemas/referral'
 
 type TutorialStep = 'download' | 'choose-os' | 'ios' | 'android'
+type AvailableLocale = 'en' | 'th'
 
 const route = useRoute()
 const config = useRuntimeConfig()
+const { locale, setLocale } = useI18n()
 const shareId = computed(() => String(route.params.shareId || ''))
 const employeeId = ref('')
 const formError = ref('')
@@ -12,6 +14,7 @@ const actionError = ref('')
 const isSubmitting = ref(false)
 const isRecordingClick = ref(false)
 const showDownloadDialog = ref(false)
+const languageMenuOpen = ref(false)
 const downloadStep = ref<TutorialStep>('download')
 const employeeLookupDelayMs = 400
 const normalizedEmployeeId = computed(() => employeeId.value.trim().toUpperCase())
@@ -32,6 +35,15 @@ type EmployeeLookupResponse = {
   }
 }
 
+const languageOptions: Array<{
+  code: AvailableLocale
+  label: string
+  shortLabel: string
+}> = [
+  { code: 'th', label: 'ไทย / TH', shortLabel: 'TH' },
+  { code: 'en', label: 'English / EN', shortLabel: 'EN' }
+]
+
 const {
   data: shareResponse,
   pending,
@@ -45,6 +57,14 @@ const downloadUrl = computed(() => {
 
   return config.public.iosDownloadUrl
 })
+
+const currentLocaleCode = computed<AvailableLocale>(() =>
+  locale.value === 'th' ? 'th' : 'en'
+)
+
+const currentLanguageOption = computed(() =>
+  languageOptions.find((option) => option.code === currentLocaleCode.value) ?? languageOptions[1]
+)
 
 function resetEmployeeLookup() {
   receiverEmployee.value = null
@@ -169,6 +189,37 @@ function chooseOs(os: TutorialOs) {
   downloadStep.value = os
 }
 
+function toggleLanguageMenu() {
+  languageMenuOpen.value = !languageMenuOpen.value
+}
+
+function closeLanguageMenu() {
+  languageMenuOpen.value = false
+}
+
+function closeLanguageMenuOnFocusOut(event: FocusEvent) {
+  const currentTarget = event.currentTarget
+  const nextTarget = event.relatedTarget
+
+  if (
+    currentTarget instanceof Node &&
+    nextTarget instanceof Node &&
+    currentTarget.contains(nextTarget)
+  ) {
+    return
+  }
+
+  closeLanguageMenu()
+}
+
+async function selectLanguage(selectedLocale: AvailableLocale) {
+  if (selectedLocale !== currentLocaleCode.value) {
+    await setLocale(selectedLocale)
+  }
+
+  closeLanguageMenu()
+}
+
 async function downloadApp() {
   actionError.value = ''
   isRecordingClick.value = true
@@ -246,7 +297,59 @@ async function submitEmployeeId() {
   <main class="min-h-screen px-4 py-8">
     <section class="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-md flex-col justify-center">
       <div class="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-        <p class="text-sm font-medium text-brand-700">DeltaHi referral</p>
+        <div class="flex items-center justify-between gap-4">
+          <p class="text-sm font-medium text-brand-700">DeltaHi referral</p>
+          <div
+            class="relative shrink-0"
+            @focusout="closeLanguageMenuOnFocusOut"
+            @keydown.escape.stop="closeLanguageMenu"
+          >
+            <span class="sr-only">Change language</span>
+            <button
+              type="button"
+              class="flex h-9 min-w-20 items-center justify-between gap-2 rounded-md border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-800 shadow-sm outline-none transition hover:border-brand-600 hover:bg-brand-50 active:bg-brand-100 focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
+              aria-label="Change language"
+              aria-haspopup="listbox"
+              :aria-expanded="languageMenuOpen"
+              @click="toggleLanguageMenu"
+            >
+              <span>{{ currentLanguageOption.shortLabel }}</span>
+              <svg
+                class="h-4 w-4 text-slate-500 transition-transform"
+                :class="{ 'rotate-180': languageMenuOpen }"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.17l3.71-3.94a.75.75 0 1 1 1.08 1.04l-4.25 4.5a.75.75 0 0 1-1.08 0l-4.25-4.5a.75.75 0 0 1 .02-1.06Z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+            </button>
+
+            <div
+              v-if="languageMenuOpen"
+              class="absolute right-0 z-20 mt-2 w-36 overflow-hidden rounded-md border border-slate-200 bg-white py-1 text-sm shadow-lg"
+              role="listbox"
+              aria-label="Language options"
+            >
+              <button
+                v-for="option in languageOptions"
+                :key="option.code"
+                type="button"
+                class="flex w-full items-center justify-between px-3 py-2 text-left font-medium text-slate-700 transition hover:bg-brand-50 hover:text-brand-700 active:bg-brand-100"
+                :class="option.code === currentLocaleCode ? 'bg-brand-50 text-brand-700' : ''"
+                role="option"
+                :aria-selected="option.code === currentLocaleCode"
+                @click="selectLanguage(option.code)"
+              >
+                <span>{{ option.label }}</span>
+              </button>
+            </div>
+          </div>
+        </div>
         <h1 class="mt-2 text-2xl font-semibold tracking-normal text-slate-950">
           Enter your employee ID
         </h1>

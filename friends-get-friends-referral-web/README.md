@@ -6,7 +6,8 @@ Lightweight DeltaHi referral web flow.
 
 Main flow:
 
-1. Referrer shares QR link.
+1. Referrer shares QR link. `/?employeeShareId=<EMPLOYEE_SHARE_ID>
+` .
 2. New user opens `/shareapp/[employee_share.id]`.
 3. New user enters employee ID.
 4. New user lands on `/download`.

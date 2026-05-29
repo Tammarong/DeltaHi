@@ -1,4 +1,4 @@
-import { createEmployeeDownloadSchema } from '../../shared/schemas/referral'
+import { createEmployeeDownloadSchema } from '~/shared/schemas/referral'
 import { recordEmployeeDownload } from '../services/referralService'
 
 export default defineEventHandler(async (event) => {
