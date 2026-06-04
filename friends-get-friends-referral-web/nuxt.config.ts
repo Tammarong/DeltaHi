@@ -20,10 +20,7 @@ export default defineNuxtConfig({
     /* cspell:words http */
     siteUrl: process.env.NUXT_PUBLIC_SITE_URL,
     public: {
-      siteUrl: process.env.NUXT_PUBLIC_SITE_URL,
-      iosDownloadUrl: process.env.NUXT_PUBLIC_IOS_DOWNLOAD_URL,
-      androidDownloadUrl:
-        process.env.NUXT_PUBLIC_ANDROID_DOWNLOAD_URL
+      downloadUrl: process.env.NUXT_PUBLIC_DOWNLOAD_URL
     }
   },
   devServer: {

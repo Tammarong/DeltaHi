@@ -8,7 +8,7 @@ export const shareIdSchema = z
 export const employeeIdSchema = z
   .string()
   .trim()
-  .min(1, 'Enter a valid employee ID.')
+  .min(1, 'Enter your Employee ID.')
   .max(40, 'Employee ID is too long.')
   .transform((value) => value.toUpperCase())
 

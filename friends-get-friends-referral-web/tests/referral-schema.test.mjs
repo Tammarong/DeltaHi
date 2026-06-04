@@ -75,8 +75,8 @@ test('first page automatically renders a QR when main app sends employeeShareId'
   assert.match(indexPage, /await renderShareQr\(share\)/)
   assert.match(indexPage, /onMounted\(\(\) =>/)
   assert.match(indexPage, /void loadShareQrById\(employeeShareIdFromQuery\.value\)/)
-  assert.match(indexPage, /Loading referral QR/)
-  assert.match(indexPage, /Referral QR is unavailable\./)
+  assert.match(indexPage, /t\('qrPage\.status\.loading'\)/)
+  assert.match(indexPage, /key: 'qrPage\.errors\.unavailable'/)
   assert.doesNotMatch(indexPage, /Create referral QR/)
   assert.doesNotMatch(indexPage, /User ID/)
   assert.doesNotMatch(indexPage, /Employee ID/)
@@ -105,6 +105,26 @@ test('share page opens the download popup instead of navigating to the download 
   assert.match(sharePage, /employeeShareId:\s*shareId\.value/)
   assert.match(sharePage, /recieverEmpId:\s*downloadReceiverEmpId\.value/)
   assert.match(sharePage, /@click="downloadApp"/)
+  assert.match(sharePage, /config\.public\.downloadUrl/)
+  assert.match(sharePage, /window\.open\(url, '_blank'\)/)
+  assert.match(sharePage, /downloadWindow\.opener = null/)
+  assert.match(sharePage, /function detectDeviceOs\(\): TutorialOs \| 'unknown'/)
+  assert.match(sharePage, /const detectedOs = detectDeviceOs\(\)/)
+  assert.match(sharePage, /downloadStep\.value = detectedOs === 'unknown' \? 'choose-os' : detectedOs/)
+  assert.doesNotMatch(sharePage, /window\.location\.href = url/)
+})
+
+test('download page reads the public download URL from runtime config', () => {
+  const nuxtConfig = readProjectFile('nuxt.config.ts')
+  const envExample = readProjectFile('.env.example')
+  const downloadPage = readProjectFile('pages/download.vue')
+  const sharePage = readProjectFile('pages/shareapp/[shareId].vue')
+
+  assert.match(nuxtConfig, /downloadUrl:\s*process\.env\.NUXT_PUBLIC_DOWNLOAD_URL/)
+  assert.match(envExample, /NUXT_PUBLIC_DOWNLOAD_URL=/)
+  assert.match(downloadPage, /config\.public\.downloadUrl/)
+  assert.doesNotMatch(downloadPage, /config\.public\.DownloadUrl/)
+  assert.match(sharePage, /config\.public\.downloadUrl/)
 })
 
 test('share page validates receiver employee before showing the download popup', () => {
@@ -118,9 +138,9 @@ test('share page validates receiver employee before showing the download popup',
   assert.match(sharePage, /downloadReceiverEmpId\.value = normalizedEmployeeId\.value/)
   assert.doesNotMatch(sharePage, /receiverEmployeeFound/)
   assert.doesNotMatch(sharePage, /receiverName/)
-  assert.match(sharePage, /placeholder="Example: EMP006"/)
+  assert.match(sharePage, /:placeholder="t\('shareApp\.employeeId\.placeholder'\)"/)
   assert.match(sharePage, /downloadReceiverEmployee/)
-  assert.match(sharePage, /Employee ID \{\{ downloadReceiverEmpId \}\} was not found/)
+  assert.match(sharePage, /t\('shareApp\.employeeLookup\.notFoundDownload'/)
 })
 
 test('share page debounces employee lookup while typing employee ID', () => {
@@ -132,8 +152,8 @@ test('share page debounces employee lookup while typing employee ID', () => {
   assert.match(sharePage, /setTimeout\(\(\) =>/)
   assert.match(sharePage, /lookupEmployeeById\(employeeIdToLookup\)/)
   assert.match(sharePage, /receiverLookupStatus/)
-  assert.match(sharePage, /Employee verified:/)
-  assert.match(sharePage, /Employee ID \{\{ normalizedEmployeeId \}\} was not found/)
+  assert.match(sharePage, /t\('shareApp\.employeeLookup\.verified'/)
+  assert.match(sharePage, /t\('shareApp\.employeeLookup\.notFoundContinue'/)
 })
 
 test('local PostgreSQL setup exists for Prisma Studio', () => {

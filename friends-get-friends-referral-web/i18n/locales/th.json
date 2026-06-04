@@ -1,8 +1,85 @@
 {
+  "qrPage": {
+    "title": "กิจกรรม Friends Get Friends",
+    "subtitle": "สแกน QR code นี้ เพื่อดาวน์โหลด DeltaHi",
+    "status": {
+      "loading": "กำลังโหลด QR แนะนำ..."
+    },
+    "errors": {
+      "unavailable": "ไม่สามารถใช้งาน QR แนะนำได้"
+    }
+  },
   "shareApp": {
+    "header": "การแนะนำ DeltaHi",
+    "title": "กรอกรหัสพนักงานของคุณ",
     "language": {
+      "change": "เปลี่ยนภาษา",
+      "options": "ตัวเลือกภาษา",
       "en": "English",
       "th": "ไทย"
+    },
+    "status": {
+      "checkingReferral": "กำลังตรวจสอบลิงก์แนะนำ...",
+      "invalidReferral": "ลิงก์แนะนำไม่ถูกต้องหรือหมดอายุแล้ว",
+      "sharedBy": "แชร์โดยพนักงาน {employeeId}"
+    },
+    "employeeId": {
+      "label": "รหัสพนักงาน",
+      "placeholder": "ตัวอย่าง: EMP006"
+    },
+    "employeeLookup": {
+      "checking": "กำลังตรวจสอบรหัสพนักงาน...",
+      "verified": "ยืนยันพนักงานแล้ว: {name}",
+      "notFoundContinue": "ไม่พบรหัสพนักงาน {employeeId} คุณยังสามารถดำเนินการต่อเพื่อดาวน์โหลดได้",
+      "verifyErrorContinue": "ไม่สามารถตรวจสอบรหัสพนักงานนี้ได้ในขณะนี้ คุณยังสามารถดำเนินการต่อเพื่อดาวน์โหลดได้",
+      "verifyErrorDownload": "ไม่สามารถตรวจสอบรหัสพนักงานนี้ได้ในขณะนี้ คุณยังสามารถดาวน์โหลดแอปได้",
+      "notFoundDownload": "ไม่พบรหัสพนักงาน {employeeId} ดำเนินการต่อโดยไม่บันทึกการแนะนำ"
+    },
+    "actions": {
+      "saving": "กำลังบันทึก...",
+      "continue": "ดำเนินการต่อ",
+      "close": "ปิด",
+      "closeDownloadPopup": "ปิดหน้าต่างดาวน์โหลด",
+      "opening": "กำลังเปิด...",
+      "checkingDevice": "กำลังตรวจสอบอุปกรณ์...",
+      "downloadApp": "ดาวน์โหลดแอป",
+      "viewTutorial": "ดูวิธีใช้งาน",
+      "backToDownload": "กลับไปดาวน์โหลด"
+    },
+    "dialog": {
+      "ready": "พร้อมดาวน์โหลด",
+      "title": "ดาวน์โหลดแอป DeltaHi",
+      "instructions": "แตะดาวน์โหลดแอปเพื่อบันทึกการแนะนำของคุณและติดตั้งแอป",
+      "cannotDownload": "ดาวน์โหลดแอปไม่ได้ใช่ไหม"
+    },
+    "tutorial": {
+      "label": "วิธีใช้งาน",
+      "choosePhone": "เลือกโทรศัพท์ของคุณ",
+      "iosLabel": "วิธีใช้งาน iOS",
+      "androidLabel": "วิธีใช้งาน Android",
+      "installIos": "ติดตั้งบน iPhone",
+      "installAndroid": "ติดตั้งบน Android",
+      "iosImageAlt": "วิธีใช้งาน iOS ขั้นตอนที่ {step}",
+      "androidImageAlt": "วิธีใช้งาน Android ขั้นตอนที่ {step}",
+      "iosStep1": "1. แตะดาวน์โหลดแอปเพื่อเปิด App Store",
+      "iosStep2": "2. แตะ Get จากนั้นยืนยันด้วย Face ID, Touch ID หรือรหัสผ่าน",
+      "iosStep3": "3. เปิด DeltaHi และเข้าสู่ระบบครั้งแรกให้เสร็จสมบูรณ์",
+      "androidStep1": "1. แตะดาวน์โหลดแอปเพื่อเปิด Google Play",
+      "androidStep2": "2. แตะติดตั้งและรอให้ดาวน์โหลดเสร็จ",
+      "androidStep3": "3. เปิด DeltaHi และเข้าสู่ระบบครั้งแรกให้เสร็จสมบูรณ์"
+    },
+    "errors": {
+      "validEmployeeId": "กรุณากรอกรหัสพนักงาน",
+      "enterEmployeeIdFirst": "กรอกรหัสพนักงานของคุณก่อน",
+      "validReferralAndEmployee": "เปิดลิงก์แนะนำที่ถูกต้องและกรอกรหัสพนักงานของคุณก่อน",
+      "saveReferral": "ไม่สามารถบันทึกการแนะนำของคุณได้ โปรดลองอีกครั้ง",
+      "detectOs": "ไม่สามารถตรวจสอบอุปกรณ์ของคุณได้ โปรดเลือกโทรศัพท์ของคุณ",
+      "openDownload": "ไม่สามารถเปิดลิงก์ดาวน์โหลดได้ โปรดลองอีกครั้ง"
+    },
+    "footer": {
+      "title": "ติดต่อเรา",
+      "description": "หากต้องการความช่วยเหลือเกี่ยวกับการแนะนำ โปรดติดต่อ:",
+      "clickHere": "คลิกที่นี่"
     }
   }
 }

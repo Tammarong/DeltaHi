@@ -12,11 +12,13 @@ export default <Partial<Config>>{
     extend: {
       colors: {
         brand: {
-          50: '#eef8ff',
-          100: '#d9efff',
-          500: '#1683c7',
-          600: '#0f6aa4',
-          700: '#105781'
+          50: '#F0FBFF',
+          100: '#DDF6FF',
+          500: '#64D7D7',
+          600: '#0087DC',
+          700: '#006CB0',
+          aqua: '#64D7D7',
+          grass: '#B9EB5F'
         }
       }
     }

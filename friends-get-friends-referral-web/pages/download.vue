@@ -13,13 +13,7 @@ const recieverEmpId = computed(() => String(route.query.recieverEmpId || ''))
 const receiverName = computed(() => String(route.query.receiverName || ''))
 const canRecordDownload = computed(() => String(route.query.receiverEmployeeFound || '') === '1')
 
-const downloadUrl = computed(() => {
-  if (step.value === 'android') {
-    return config.public.androidDownloadUrl
-  }
-
-  return config.public.iosDownloadUrl
-})
+const downloadUrl = computed(() => String(config.public.downloadUrl || '').trim())
 
 function getStatusCode(error: unknown) {
   if (error && typeof error === 'object') {
@@ -80,8 +74,16 @@ async function downloadApp() {
         }
       }
     }
+    const url = downloadUrl.value
 
-    window.location.href = downloadUrl.value
+    if (!url) {
+      actionError.value = 'Download link is not configured.'
+      return
+    }
+
+    if (import.meta.client) {
+      window.location.href = url
+    }
   } catch {
     actionError.value = 'Unable to open the download link. Please try again.'
   } finally {
@@ -98,7 +100,7 @@ async function chooseOs(os: TutorialOs) {
 <template>
   <main class="min-h-screen px-4 py-8">
     <section class="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-md flex-col justify-center">
-      <div class="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+      <div class="delta-glow-card">
         <div v-if="step === 'download'">
           <p class="text-sm font-medium text-emerald-700">Ready to download</p>
           <h1 class="mt-2 text-2xl font-semibold text-slate-950">
@@ -143,7 +145,7 @@ async function chooseOs(os: TutorialOs) {
 
         <div v-else-if="step === 'choose-os'">
           <p class="text-sm font-medium text-brand-700">Tutorial</p>
-          <h1 class="mt-2 text-2xl font-semibold text-slate-950">Choose your phone</h1>
+          <h1 class="mt-2 text-2xl font-semibold text-slate-950">Choose your OS</h1>
           <div class="mt-6 grid grid-cols-2 gap-3">
             <button
               type="button"
