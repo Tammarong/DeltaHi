@@ -12,7 +12,7 @@ import iosTutorialStep3Url from '~/assets/img/tutorials/iOS/iOS+(3).png'
 import iosTutorialStep4Url from '~/assets/img/tutorials/iOS/iOS+(4).png'
 import iosTutorialStep5Url from '~/assets/img/tutorials/iOS/iOS+(5).png'
 import iosTutorialStep6Url from '~/assets/img/tutorials/iOS/iOS+(6).png'
-import type { TutorialOs } from '../../shared/schemas/referral'
+import type { DownloadOs, TutorialOs } from '../../shared/schemas/referral'
 
 type TutorialStep = 'download' | 'choose-os' | 'ios' | 'android'
 type AvailableLocale = 'en' | 'th'
@@ -211,7 +211,7 @@ function getActionErrorMessage(_error: unknown): LocalizedMessage {
   return { key: 'shareApp.errors.saveReferral' }
 }
 
-function detectDeviceOs(): TutorialOs | 'unknown' {
+function detectDeviceOs(): DownloadOs {
   if (!import.meta.client) {
     return 'unknown'
   }
@@ -234,6 +234,14 @@ function detectDeviceOs(): TutorialOs | 'unknown' {
   }
 
   return 'unknown'
+}
+
+function getDownloadOs(): DownloadOs {
+  if (downloadStep.value === 'ios' || downloadStep.value === 'android') {
+    return downloadStep.value
+  }
+
+  return detectDeviceOs()
 }
 
 function openDownloadUrl() {
@@ -318,6 +326,8 @@ async function downloadApp() {
       return
     }
 
+    const detectedOs = getDownloadOs()
+
     if (downloadReceiverEmployee.value) {
       if (!shareId.value) {
         actionError.value = { key: 'shareApp.errors.validReferralAndEmployee' }
@@ -329,7 +339,8 @@ async function downloadApp() {
           method: 'POST',
           body: {
             employeeShareId: shareId.value,
-            recieverEmpId: downloadReceiverEmpId.value
+            recieverEmpId: downloadReceiverEmpId.value,
+            os: detectedOs
           }
         })
       } catch (recordError) {
@@ -340,7 +351,6 @@ async function downloadApp() {
       }
     }
 
-    const detectedOs = detectDeviceOs()
     downloadStep.value = detectedOs === 'unknown' ? 'choose-os' : detectedOs
   } catch {
     actionError.value = { key: 'shareApp.errors.detectOs' }

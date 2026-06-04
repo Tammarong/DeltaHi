@@ -7,6 +7,7 @@ import {
   findActiveEmployeeShareById,
   findHrEmployeeByEmpId,
   findServiceUserById,
+  updateEmployeeDownloadOs,
   upsertEmployeeShare
 } from '../repositories/referralRepository'
 import { prisma } from '../utils/prisma'
@@ -89,10 +90,11 @@ export async function recordEmployeeDownload(input: CreateEmployeeDownloadInput)
     const existingDownload = await findActiveEmployeeDownloadByShareAndReceiver(tx, input)
 
     if (existingDownload) {
-      throw createError({
-        statusCode: 409,
-        statusMessage: 'This employee ID has already been submitted for this referral.'
-      })
+      if (existingDownload.os === 'unknown' && input.os !== 'unknown') {
+        return await updateEmployeeDownloadOs(tx, existingDownload.id, input.os)
+      }
+
+      return existingDownload
     }
 
     try {

@@ -22,9 +22,12 @@ export const createEmployeeShareSchema = z.object({
   employeeId: employeeIdSchema
 })
 
+export const downloadOsSchema = z.enum(['ios', 'android', 'unknown'])
+
 export const createEmployeeDownloadSchema = z.object({
   employeeShareId: shareIdSchema,
-  recieverEmpId: employeeIdSchema
+  recieverEmpId: employeeIdSchema,
+  os: downloadOsSchema.default('unknown')
 })
 
 export const downloadIdSchema = z.string().trim().uuid('Download record is invalid.')
@@ -34,5 +37,6 @@ export const tutorialSchema = z.object({
 })
 
 export type TutorialOs = z.infer<typeof tutorialSchema>['os']
+export type DownloadOs = z.infer<typeof downloadOsSchema>
 export type CreateEmployeeShareInput = z.infer<typeof createEmployeeShareSchema>
 export type CreateEmployeeDownloadInput = z.infer<typeof createEmployeeDownloadSchema>

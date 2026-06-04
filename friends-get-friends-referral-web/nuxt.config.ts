@@ -15,6 +15,14 @@ export default defineNuxtConfig({
   },
   app: {
     baseURL: process.env.NUXT_PUBLIC_BASE_URL,
+    head: {
+      link: [
+        { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' },
+        { rel: 'apple-touch-icon', sizes: '120x120', href: '/apple-touch-icon-120x120.png' },
+        { rel: 'apple-touch-icon-precomposed', sizes: '180x180', href: '/apple-touch-icon-precomposed.png' },
+        { rel: 'apple-touch-icon-precomposed', sizes: '120x120', href: '/apple-touch-icon-120x120-precomposed.png' }
+      ]
+    }
   },
   runtimeConfig: {
     /* cspell:words http */

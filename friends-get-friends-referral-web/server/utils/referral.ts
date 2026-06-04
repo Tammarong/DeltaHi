@@ -20,6 +20,7 @@ export function toPublicEmployeeDownload(download: EmployeeDownload) {
     id: download.id,
     employeeShareId: download.employeeShareId,
     recieverEmpId: download.recieverEmpId,
+    os: download.os,
     createdAt: download.createdAt,
     updatedAt: download.updatedAt
   }

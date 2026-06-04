@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { TutorialOs } from '../shared/schemas/referral'
+import type { DownloadOs, TutorialOs } from '../shared/schemas/referral'
 
 type TutorialStep = 'download' | 'choose-os' | 'ios' | 'android'
 
@@ -14,6 +14,31 @@ const receiverName = computed(() => String(route.query.receiverName || ''))
 const canRecordDownload = computed(() => String(route.query.receiverEmployeeFound || '') === '1')
 
 const downloadUrl = computed(() => String(config.public.downloadUrl || '').trim())
+
+function detectDeviceOs(): DownloadOs {
+  if (!import.meta.client) {
+    return 'unknown'
+  }
+
+  const userAgent = navigator.userAgent.toLowerCase()
+
+  if (userAgent.includes('android')) {
+    return 'android'
+  }
+
+  if (/iphone|ipad|ipod/.test(userAgent)) {
+    return 'ios'
+  }
+
+  if (
+    navigator.platform === 'MacIntel' &&
+    navigator.maxTouchPoints > 1
+  ) {
+    return 'ios'
+  }
+
+  return 'unknown'
+}
 
 function getStatusCode(error: unknown) {
   if (error && typeof error === 'object') {
@@ -54,6 +79,10 @@ async function downloadApp() {
     }
 
     if (canRecordDownload.value) {
+      const detectedOs = step.value === 'ios' || step.value === 'android'
+        ? step.value
+        : detectDeviceOs()
+
       if (!employeeShareId.value) {
         actionError.value = 'Open a valid referral link and enter your employee ID first.'
         return
@@ -64,7 +93,8 @@ async function downloadApp() {
           method: 'POST',
           body: {
             employeeShareId: employeeShareId.value,
-            recieverEmpId: recieverEmpId.value
+            recieverEmpId: recieverEmpId.value,
+            os: detectedOs
           }
         })
       } catch (recordError) {

@@ -63,10 +63,26 @@ export function createEmployeeDownload(
   data: {
     employeeShareId: string
     recieverEmpId: string
+    os: string
   }
 ) {
   return db.employeeDownload.create({
     data
+  })
+}
+
+export function updateEmployeeDownloadOs(
+  db: PrismaTransaction,
+  id: string,
+  os: string
+) {
+  return db.employeeDownload.update({
+    where: {
+      id
+    },
+    data: {
+      os
+    }
   })
 }
 
@@ -82,6 +98,67 @@ export function findActiveEmployeeDownloadByShareAndReceiver(
       employeeShareId: data.employeeShareId,
       recieverEmpId: data.recieverEmpId,
       ...activeRecord
+    }
+  })
+}
+
+export function countActiveEmployeeDownloads(db: PrismaTransaction) {
+  return db.employeeDownload.count({
+    where: activeRecord
+  })
+}
+
+export function findRecentActiveEmployeeDownloads(db: PrismaTransaction, take = 10, skip = 0) {
+  return db.employeeDownload.findMany({
+    where: activeRecord,
+    orderBy: {
+      createdAt: 'desc'
+    },
+    take,
+    skip,
+    include: {
+      receiverEmployee: true,
+      share: {
+        include: {
+          employee: true
+        }
+      }
+    }
+  })
+}
+
+export function groupActiveEmployeeDownloadsByReceiver(db: PrismaTransaction) {
+  return db.employeeDownload.groupBy({
+    by: ['recieverEmpId'],
+    where: activeRecord
+  })
+}
+
+export function groupActiveEmployeeDownloadsByShare(db: PrismaTransaction) {
+  return db.employeeDownload.groupBy({
+    by: ['employeeShareId'],
+    where: activeRecord,
+    _count: {
+      _all: true
+    },
+    orderBy: {
+      _count: {
+        employeeShareId: 'desc'
+      }
+    }
+  })
+}
+
+export function findActiveEmployeeSharesByIds(db: PrismaTransaction, ids: string[]) {
+  return db.employeeShare.findMany({
+    where: {
+      id: {
+        in: ids
+      },
+      ...activeRecord
+    },
+    include: {
+      employee: true
     }
   })
 }

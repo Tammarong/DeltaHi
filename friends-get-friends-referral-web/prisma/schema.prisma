@@ -48,6 +48,7 @@ model EmployeeDownload {
   id               String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   employeeShareId  String              @map("employee_share_id") @db.Uuid
   recieverEmpId    String              @map("reciever_emp_id") @db.VarChar
+  os               String              @default("unknown") @db.VarChar(16)
   createdAt        DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   deletedAt        DateTime?           @map("deleted_at") @db.Timestamptz(6)
