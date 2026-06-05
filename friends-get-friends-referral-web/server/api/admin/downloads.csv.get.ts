@@ -1,11 +1,5 @@
-import { getAdminDashboard } from '../../services/adminDashboardService'
-
-function getQueryNumber(value: unknown) {
-  const normalizedValue = Array.isArray(value) ? value[0] : value
-  const parsedValue = Number.parseInt(String(normalizedValue ?? ''), 10)
-
-  return Number.isFinite(parsedValue) ? parsedValue : undefined
-}
+import { setHeader } from 'h3'
+import { getAdminDownloadsCsv } from '../../services/adminDashboardService'
 
 function getQueryString(value: unknown) {
   const normalizedValue = Array.isArray(value) ? value[0] : value
@@ -26,13 +20,15 @@ function getQueryOs(value: unknown) {
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
-
-  return await getAdminDashboard({
-    page: getQueryNumber(query.page),
-    pageSize: getQueryNumber(query.pageSize),
+  const csv = await getAdminDownloadsCsv({
     search: getQueryString(query.search),
     os: getQueryOs(query.os),
     dateFrom: getQueryString(query.dateFrom),
     dateTo: getQueryString(query.dateTo)
   })
+
+  setHeader(event, 'Content-Type', 'text/csv; charset=utf-8')
+  setHeader(event, 'Content-Disposition', 'attachment; filename="downloads.csv"')
+
+  return csv
 })

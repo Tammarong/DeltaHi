@@ -102,15 +102,23 @@ export function findActiveEmployeeDownloadByShareAndReceiver(
   })
 }
 
-export function countActiveEmployeeDownloads(db: PrismaTransaction) {
+export function countActiveEmployeeDownloads(
+  db: PrismaTransaction,
+  where: Prisma.EmployeeDownloadWhereInput = activeRecord
+) {
   return db.employeeDownload.count({
-    where: activeRecord
+    where
   })
 }
 
-export function findRecentActiveEmployeeDownloads(db: PrismaTransaction, take = 10, skip = 0) {
+export function findRecentActiveEmployeeDownloads(
+  db: PrismaTransaction,
+  where: Prisma.EmployeeDownloadWhereInput = activeRecord,
+  take = 10,
+  skip = 0
+) {
   return db.employeeDownload.findMany({
-    where: activeRecord,
+    where,
     orderBy: {
       createdAt: 'desc'
     },
@@ -127,17 +135,67 @@ export function findRecentActiveEmployeeDownloads(db: PrismaTransaction, take = 
   })
 }
 
-export function groupActiveEmployeeDownloadsByReceiver(db: PrismaTransaction) {
-  return db.employeeDownload.groupBy({
-    by: ['recieverEmpId'],
-    where: activeRecord
+export function findActiveEmployeeDownloadsForExport(
+  db: PrismaTransaction,
+  where: Prisma.EmployeeDownloadWhereInput = activeRecord,
+  take = 5000
+) {
+  return db.employeeDownload.findMany({
+    where,
+    orderBy: {
+      createdAt: 'desc'
+    },
+    take,
+    include: {
+      receiverEmployee: true,
+      share: {
+        include: {
+          employee: true
+        }
+      }
+    }
   })
 }
 
-export function groupActiveEmployeeDownloadsByShare(db: PrismaTransaction) {
+export function findFirstActiveEmployeeDownloads(
+  db: PrismaTransaction,
+  where: Prisma.EmployeeDownloadWhereInput = activeRecord,
+  take = 5000
+) {
+  return db.employeeDownload.findMany({
+    where,
+    orderBy: {
+      createdAt: 'asc'
+    },
+    take,
+    include: {
+      receiverEmployee: true,
+      share: {
+        include: {
+          employee: true
+        }
+      }
+    }
+  })
+}
+
+export function groupActiveEmployeeDownloadsByReceiver(
+  db: PrismaTransaction,
+  where: Prisma.EmployeeDownloadWhereInput = activeRecord
+) {
+  return db.employeeDownload.groupBy({
+    by: ['recieverEmpId'],
+    where
+  })
+}
+
+export function groupActiveEmployeeDownloadsByShare(
+  db: PrismaTransaction,
+  where: Prisma.EmployeeDownloadWhereInput = activeRecord
+) {
   return db.employeeDownload.groupBy({
     by: ['employeeShareId'],
-    where: activeRecord,
+    where,
     _count: {
       _all: true
     },

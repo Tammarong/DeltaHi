@@ -1,4 +1,7 @@
 <script setup lang="ts">
+
+import deltaLogoUrl from '~/assets/img/Delta_Logo.png'
+
 type DashboardDownload = {
   id: string
   no: number
@@ -16,7 +19,18 @@ type DashboardPioneer = {
   name: string
   employeeId: string
   refers: number
+  score: number
   qualified?: boolean
+}
+
+type DashboardWinner = {
+  rank: number
+  name: string
+  employeeId: string
+  referrerName: string
+  referrerEmpId: string
+  os: string
+  downloadedAt: string
 }
 
 type AdminDashboardResponse = {
@@ -35,18 +49,33 @@ type AdminDashboardResponse = {
     pageCount: number
   }
   topPioneers: DashboardPioneer[]
+  first38Winners: DashboardWinner[]
 }
 
-const navItems = ['Dashboard', 'Logs', 'Downloads', 'Users']
 const searchQuery = ref('')
+const osFilter = ref<'all' | 'ios' | 'android' | 'unknown'>('all')
+const dateFromFilter = ref('')
+const dateToFilter = ref('')
 const currentPage = ref(1)
+const showWinnersDialog = ref(false)
+const winnerSort = ref<'highest' | 'lowest'>('highest')
+const winnerPage = ref(1)
 const pageSize = 10
+const winnerPageSize = 10
 const numberFormatter = new Intl.NumberFormat('en-US')
 const downloadedAtFormatter = new Intl.DateTimeFormat('en-GB', {
   dateStyle: 'medium',
   timeStyle: 'short',
   timeZone: 'Asia/Bangkok'
 })
+const dashboardQuery = computed(() => ({
+  page: currentPage.value,
+  pageSize,
+  search: searchQuery.value.trim() || undefined,
+  os: osFilter.value === 'all' ? undefined : osFilter.value,
+  dateFrom: dateFromFilter.value || undefined,
+  dateTo: dateToFilter.value || undefined
+}))
 
 const {
   data: dashboard,
@@ -54,10 +83,8 @@ const {
   error,
   refresh
 } = await useFetch<AdminDashboardResponse>('/api/admin/dashboard', {
-  query: computed(() => ({
-    page: currentPage.value,
-    pageSize
-  }))
+  query: dashboardQuery,
+  watch: false
 })
 
 const stats = computed(() => dashboard.value?.stats ?? {
@@ -82,16 +109,14 @@ const statCards = computed(() => {
       label: 'Total Downloads',
       value: numberFormatter.format(stats.value.totalDownloads),
       helper: 'Recorded app download clicks',
-      trend: 'Live',
-      tone: 'green',
+      tone: 'blue',
       icon: 'download'
     },
     {
       label: 'New Users',
       value: numberFormatter.format(stats.value.newUsers),
       helper: 'Unique receiver employee IDs',
-      trend: 'Live',
-      tone: 'blue',
+      tone: 'green',
       icon: 'user'
     },
     {
@@ -99,7 +124,7 @@ const statCards = computed(() => {
       value: numberFormatter.format(stats.value.first38Users),
       helper: `/ ${stats.value.pioneerSlots}`,
       trend: `${first38Progress.value}%`,
-      tone: 'amber',
+      tone: 'yellow',
       icon: 'trophy'
     }
   ] as const
@@ -112,23 +137,6 @@ const pagination = computed(() => dashboard.value?.pagination ?? {
   total: 0,
   pageCount: 1
 })
-const filteredActivityRows = computed(() => {
-  const query = searchQuery.value.trim().toLowerCase()
-
-  if (!query) {
-    return activityRows.value
-  }
-
-  return activityRows.value.filter((row) =>
-    [
-      row.receiverName,
-      row.receiverEmpId,
-      row.referrerName,
-      row.referrerEmpId,
-      row.os
-    ].some((value) => value.toLowerCase().includes(query))
-  )
-})
 const pioneers = computed(() => dashboard.value?.topPioneers ?? [])
 const pioneerSlotsText = computed(() =>
   `${numberFormatter.format(stats.value.first38Users)}/${numberFormatter.format(stats.value.pioneerSlots)}`
@@ -136,29 +144,85 @@ const pioneerSlotsText = computed(() =>
 const pioneerStatusLabel = computed(() =>
   stats.value.first38Users >= stats.value.pioneerSlots ? 'Qualified' : 'In Progress'
 )
+const hasActiveFilters = computed(() =>
+  Boolean(searchQuery.value.trim()) ||
+  osFilter.value !== 'all' ||
+  Boolean(dateFromFilter.value) ||
+  Boolean(dateToFilter.value)
+)
 const activitySummary = computed(() => {
-  const visibleCount = filteredActivityRows.value.length
+  const visibleCount = activityRows.value.length
   const totalCount = pagination.value.total
 
   if (!totalCount) {
     return 'Showing 0 downloads'
   }
 
-  if (searchQuery.value.trim()) {
-    return `Showing ${visibleCount} matching downloads on this page`
-  }
-
   const start = ((pagination.value.page - 1) * pagination.value.pageSize) + 1
   const end = start + visibleCount - 1
+  const suffix = hasActiveFilters.value ? 'filtered downloads' : 'downloads'
 
-  return `Showing ${start}-${end} of ${numberFormatter.format(totalCount)} downloads`
+  return `Showing ${start}-${end} of ${numberFormatter.format(totalCount)} ${suffix}`
 })
 const canGoPreviousPage = computed(() => pagination.value.page > 1 && !pending.value)
 const canGoNextPage = computed(() => pagination.value.page < pagination.value.pageCount && !pending.value)
+const sortedWinnerRows = computed(() => {
+  return [...pioneers.value].sort((firstPioneer, secondPioneer) => {
+    const referDifference = firstPioneer.refers - secondPioneer.refers
 
-watch(searchQuery, () => {
-  currentPage.value = 1
+    if (referDifference) {
+      return winnerSort.value === 'highest' ? -referDifference : referDifference
+    }
+
+    return winnerSort.value === 'highest'
+      ? firstPioneer.rank - secondPioneer.rank
+      : secondPioneer.rank - firstPioneer.rank
+  })
 })
+const winnerPageCount = computed(() =>
+  Math.max(1, Math.ceil(sortedWinnerRows.value.length / winnerPageSize))
+)
+const paginatedWinnerRows = computed(() => {
+  const start = (winnerPage.value - 1) * winnerPageSize
+
+  return sortedWinnerRows.value.slice(start, start + winnerPageSize)
+})
+const winnerSummary = computed(() => {
+  const total = sortedWinnerRows.value.length
+
+  if (!total) {
+    return 'Showing 0 winners'
+  }
+
+  const start = ((winnerPage.value - 1) * winnerPageSize) + 1
+  const end = start + paginatedWinnerRows.value.length - 1
+
+  return `Showing ${start}-${end} of ${numberFormatter.format(total)} winners`
+})
+const canGoPreviousWinnerPage = computed(() => winnerPage.value > 1)
+const canGoNextWinnerPage = computed(() => winnerPage.value < winnerPageCount.value)
+
+watch([searchQuery, osFilter, dateFromFilter, dateToFilter], () => {
+  const isAlreadyFirstPage = currentPage.value === 1
+
+  currentPage.value = 1
+
+  if (isAlreadyFirstPage) {
+    refreshDashboard()
+  }
+})
+
+watch(currentPage, () => {
+  refreshDashboard()
+})
+
+watch([winnerSort, pioneers], () => {
+  winnerPage.value = 1
+})
+
+function refreshDashboard() {
+  void refresh()
+}
 
 function formatDownloadedAt(value: string) {
   return downloadedAtFormatter.format(new Date(value))
@@ -192,38 +256,127 @@ function goToNextPage() {
   currentPage.value = Math.min(pagination.value.pageCount, currentPage.value + 1)
 }
 
+async function resetFilters() {
+  searchQuery.value = ''
+  osFilter.value = 'all'
+  dateFromFilter.value = ''
+  dateToFilter.value = ''
+  currentPage.value = 1
+
+  await refresh()
+}
+
+function exportCsv() {
+  if (!import.meta.client) {
+    return
+  }
+
+  const params = new URLSearchParams()
+
+  if (searchQuery.value.trim()) {
+    params.set('search', searchQuery.value.trim())
+  }
+
+  if (osFilter.value !== 'all') {
+    params.set('os', osFilter.value)
+  }
+
+  if (dateFromFilter.value) {
+    params.set('dateFrom', dateFromFilter.value)
+  }
+
+  if (dateToFilter.value) {
+    params.set('dateTo', dateToFilter.value)
+  }
+
+  const queryString = params.toString()
+  window.location.href = `/api/admin/downloads.csv${queryString ? `?${queryString}` : ''}`
+}
+
+function escapeClientCsvValue(value: string | number) {
+  const stringValue = String(value)
+
+  if (/[",\n\r]/.test(stringValue)) {
+    return `"${stringValue.replaceAll('"', '""')}"`
+  }
+
+  return stringValue
+}
+
+function downloadClientCsv(filename: string, rows: Array<Array<string | number>>) {
+  if (!import.meta.client) {
+    return
+  }
+
+  const csv = `\uFEFF${rows
+    .map((row) => row.map(escapeClientCsvValue).join(','))
+    .join('\n')}\n`
+  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
+  const link = document.createElement('a')
+
+  link.href = url
+  link.download = filename
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
+function exportWinnersCsv() {
+  downloadClientCsv('top-38-pioneers.csv', [
+    ['Rank', 'Referrer Name', 'Referrer Employee ID', 'Refers', 'Score'],
+    ...sortedWinnerRows.value.map((pioneer) => [
+      pioneer.rank,
+      pioneer.name,
+      pioneer.employeeId,
+      pioneer.refers,
+      pioneer.score
+    ])
+  ])
+}
+
+function openWinnersDialog() {
+  winnerPage.value = 1
+  showWinnersDialog.value = true
+}
+
+function closeWinnersDialog() {
+  showWinnersDialog.value = false
+}
+
+function goToPreviousWinnerPage() {
+  if (!canGoPreviousWinnerPage.value) {
+    return
+  }
+
+  winnerPage.value = Math.max(1, winnerPage.value - 1)
+}
+
+function goToNextWinnerPage() {
+  if (!canGoNextWinnerPage.value) {
+    return
+  }
+
+  winnerPage.value = Math.min(winnerPageCount.value, winnerPage.value + 1)
+}
+
 useHead({
   title: 'Admin Dashboard | Friends Get Friends'
 })
 </script>
 
 <template>
-  <main class="min-h-screen overflow-x-hidden bg-[#f6f8f5] text-[#202622]">
-    <header class="border-b border-[#cfd8cc] bg-[#f6f8f5]/95">
-      <div class="mx-auto flex min-h-[56px] w-full max-w-7xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-        <div class="flex min-w-0 items-center gap-4">
-          <p class="text-base font-extrabold tracking-normal text-[#075f19]">
-            Friends Get Friends
-          </p>
-          <div class="hidden h-6 w-px bg-[#c7d1c4] sm:block" />
-          <h1 class="text-lg font-bold tracking-normal text-[#202622]">
+  <main class="min-h-screen overflow-x-hidden bg-[#f4f8fb] text-[#17324d]">
+    <header class="border-b border-[#c9d8e8] bg-white/95">
+      <div class="mx-auto flex min-h-[56px] w-full max-w-7xl items-center px-5 py-3 sm:px-6">
+        <div class="flex min-w-0 items-center gap-3">
+          <img
+            :src="deltaLogoUrl"
+            alt="Delta"
+            class="h-auto w-32 shrink-0"
+          >
+          <h1 class="mt-4 border-l border-[#c9d8e8] pl-3 text-xl font-bold leading-none tracking-normal text-[#17324d]">
             Dashboard Overview
           </h1>
         </div>
-
-        <nav class="flex min-w-0 items-center gap-2 overflow-x-auto text-sm font-medium" aria-label="Admin navigation">
-          <button
-            v-for="item in navItems"
-            :key="item"
-            type="button"
-            class="h-8 shrink-0 rounded-md px-4 text-sm transition"
-            :class="item === 'Dashboard'
-              ? 'bg-[#075f19] text-white shadow-sm'
-              : 'text-[#202622] hover:bg-white hover:text-[#075f19]'"
-          >
-            {{ item }}
-          </button>
-        </nav>
       </div>
     </header>
 
@@ -232,11 +385,11 @@ useHead({
         <article
           v-for="card in statCards"
           :key="card.label"
-          class="relative min-h-[132px] rounded-lg border border-[#cfdccf] bg-white p-4 shadow-[0_1px_2px_rgba(24,45,26,0.04)]"
+          class="relative min-h-[132px] rounded-lg border border-[#d7e2ec] bg-white p-4 shadow-[0_1px_2px_rgba(23,50,77,0.06)]"
         >
           <div
             v-if="card.label === 'First 38 Users' && first38Progress >= 100"
-            class="absolute right-0 top-0 rounded-bl-sm rounded-tr-lg bg-[#075f19] px-3 py-1 text-[9px] font-extrabold uppercase text-white"
+            class="absolute right-0 top-0 rounded-bl-sm rounded-tr-lg bg-[#f5b400] px-3 py-1 text-[9px] font-extrabold uppercase text-[#17324d]"
           >
             Goal Reached
           </div>
@@ -245,9 +398,9 @@ useHead({
             <div
               class="flex h-10 w-10 shrink-0 items-center justify-center rounded-md"
               :class="{
-                'bg-[#e8f7e9] text-[#075f19]': card.tone === 'green',
-                'bg-[#eaf5ff] text-[#0072bc]': card.tone === 'blue',
-                'bg-[#f7eee7] text-[#a35b09]': card.tone === 'amber'
+                'bg-[#e7f6ed] text-[#128041]': card.tone === 'green',
+                'bg-[#e8f4fb] text-[#008bd2]': card.tone === 'blue',
+                'bg-[#fff7df] text-[#b77900]': card.tone === 'yellow'
               }"
             >
               <svg v-if="card.icon === 'download'" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -268,27 +421,21 @@ useHead({
               </svg>
             </div>
 
-            <span
-              class="rounded-full px-3 py-1 text-xs font-semibold"
-              :class="card.tone === 'blue' ? 'bg-[#e2f2ff] text-[#0072bc]' : 'bg-[#e3f8e4] text-[#075f19]'"
-            >
-              {{ card.trend }}
-            </span>
           </div>
 
           <div class="mt-3">
-            <p class="text-[11px] font-extrabold leading-4 text-[#58625b]">{{ card.label }}</p>
-            <p class="mt-1 text-[28px] font-black leading-8 tracking-normal text-[#202622]">
+            <p class="text-[11px] font-extrabold leading-4 text-[#5a6b7c]">{{ card.label }}</p>
+            <p class="mt-1 text-[28px] font-black leading-8 tracking-normal text-[#17324d]">
               {{ card.value }}
-              <span v-if="card.label === 'First 38 Users'" class="text-base font-semibold text-[#202622]">
+              <span v-if="card.label === 'First 38 Users'" class="text-base font-semibold text-[#17324d]">
                 {{ card.helper }}
               </span>
             </p>
-            <p v-if="card.label !== 'First 38 Users'" class="mt-1 text-[11px] font-semibold leading-4 text-[#202622]">
+            <p v-if="card.label !== 'First 38 Users'" class="mt-1 text-[11px] font-semibold leading-4 text-[#17324d]">
               {{ card.helper }}
             </p>
-            <div v-else class="mt-3 h-2 rounded-full bg-[#e5eee5]">
-              <div class="h-full rounded-full bg-[#075f19]" :style="{ width: `${first38Progress}%` }" />
+            <div v-else class="mt-3 h-2 rounded-full bg-[#edf2f7]">
+              <div class="h-full rounded-full bg-[#008bd2]" :style="{ width: `${first38Progress}%` }" />
             </div>
           </div>
         </article>
@@ -296,51 +443,80 @@ useHead({
 
       <div class="grid min-h-0 gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
         <section class="min-w-0 space-y-4">
-          <section class="rounded-lg border border-[#cfdccf] bg-white p-3 shadow-[0_1px_2px_rgba(24,45,26,0.04)]">
-            <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <label class="relative min-w-0 flex-1">
-                <span class="sr-only">Search users</span>
-                <svg class="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[#4d5a52]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <circle cx="11" cy="11" r="7" />
-                  <path d="m20 20-3.5-3.5" />
-                </svg>
+          <section class="rounded-lg border border-[#d7e2ec] bg-white p-4 shadow-[0_1px_2px_rgba(23,50,77,0.06)]">
+            <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(280px,1.35fr)_128px_148px_148px_104px] xl:items-end">
+              <label class="min-w-0">
+                <span class="mb-1 block text-[10px] font-extrabold uppercase text-[#5a6b7c]">Search</span>
+                <span class="relative block">
+                  <svg class="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[#5a6b7c]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="11" cy="11" r="7" />
+                    <path d="m20 20-3.5-3.5" />
+                  </svg>
+                  <input
+                    v-model="searchQuery"
+                    type="search"
+                    placeholder="Name or employee ID"
+                    class="h-10 w-full rounded-md border border-[#c9d8e8] bg-[#f7fbff] pl-10 pr-3 text-xs font-medium text-[#17324d] outline-none transition placeholder:text-[#6b7d90] focus:border-[#008bd2] focus:bg-white focus:ring-2 focus:ring-[#dff1fb]"
+                  >
+                </span>
+              </label>
+
+              <label class="min-w-0">
+                <span class="mb-1 block text-[10px] font-extrabold uppercase text-[#5a6b7c]">OS</span>
+                <select
+                  v-model="osFilter"
+                  class="h-10 w-full rounded-md border border-[#c9d8e8] bg-[#f7fbff] px-3 text-xs font-bold text-[#17324d] outline-none transition focus:border-[#008bd2] focus:bg-white focus:ring-2 focus:ring-[#dff1fb]"
+                >
+                  <option value="all">All OS</option>
+                  <option value="ios">iOS</option>
+                  <option value="android">Android</option>
+                  <option value="unknown">Unknown</option>
+                </select>
+              </label>
+
+              <label class="min-w-0">
+                <span class="mb-1 block text-[10px] font-extrabold uppercase text-[#5a6b7c]">From</span>
                 <input
-                  v-model="searchQuery"
-                  type="search"
-                  placeholder="Search by name, ID, or code..."
-                  class="h-10 w-full rounded-md border border-[#c6d2c8] bg-[#f8faf9] pl-10 pr-3 text-xs font-medium text-[#202622] outline-none transition placeholder:text-[#60706a] focus:border-[#075f19] focus:bg-white focus:ring-2 focus:ring-[#dbf4dc]"
+                  v-model="dateFromFilter"
+                  type="date"
+                  class="h-10 w-full rounded-md border border-[#c9d8e8] bg-[#f7fbff] px-3 text-xs font-bold text-[#17324d] outline-none transition focus:border-[#008bd2] focus:bg-white focus:ring-2 focus:ring-[#dff1fb]"
                 >
               </label>
 
-              <div class="flex shrink-0 flex-wrap items-center gap-2 lg:flex-nowrap">
-                <button
-                  type="button"
-                  class="inline-flex h-10 w-[98px] items-center justify-center gap-2 rounded-md border border-[#c6d2c8] bg-[#f8faf9] px-2 text-xs font-extrabold text-[#075f19] transition hover:bg-[#eaf7eb]"
-                  @click="refresh()"
+              <label class="min-w-0">
+                <span class="mb-1 block text-[10px] font-extrabold uppercase text-[#5a6b7c]">To</span>
+                <input
+                  v-model="dateToFilter"
+                  type="date"
+                  class="h-10 w-full rounded-md border border-[#c9d8e8] bg-[#f7fbff] px-3 text-xs font-bold text-[#17324d] outline-none transition focus:border-[#008bd2] focus:bg-white focus:ring-2 focus:ring-[#dff1fb]"
                 >
-                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M21 12a9 9 0 0 1-15.2 6.5" />
-                    <path d="M3 12A9 9 0 0 1 18.2 5.5" />
-                    <path d="M18 2v4h-4" />
-                    <path d="M6 22v-4h4" />
-                  </svg>
-                  Refresh
-                </button>
-                <button
-                  type="button"
-                  class="h-10 w-[72px] px-1 text-[10px] font-bold text-[#5e625f] underline underline-offset-2 transition hover:text-[#075f19]"
-                  @click="searchQuery = ''"
-                >
-                  Reset
-                </button>
-              </div>
+              </label>
+
+              <button
+                type="button"
+                class="flex h-10 w-10 min-w-0 items-center justify-center rounded-md border border-[#c9d8e8] bg-[#f7fbff] text-[#008bd2] transition hover:bg-[#e8f4fb] md:col-span-2 xl:col-span-1"
+                aria-label="Reset filters"
+                title="Reset filters"
+                @click="resetFilters"
+              >
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M3 12a9 9 0 0 1 15.2-6.5" />
+                  <path d="M18 2v4h-4" />
+                  <path d="M21 12a9 9 0 0 1-15.2 6.5" />
+                  <path d="M6 22v-4h4" />
+                </svg>
+              </button>
             </div>
           </section>
 
-          <section class="min-w-0 overflow-hidden rounded-lg border border-[#cfdccf] bg-white shadow-[0_1px_2px_rgba(24,45,26,0.04)]">
-            <div class="flex items-center justify-between gap-4 border-b border-[#d1dcd0] px-5 py-5">
-              <h2 class="text-lg font-extrabold text-[#202622]">Recent Activity</h2>
-              <button type="button" class="inline-flex items-center gap-1 text-sm font-semibold text-[#075f19] transition hover:text-[#053f12]">
+          <section class="min-w-0 overflow-hidden rounded-lg border border-[#d7e2ec] bg-white shadow-[0_1px_2px_rgba(23,50,77,0.06)]">
+            <div class="flex items-center justify-between gap-4 border-b border-[#d7e2ec] px-5 py-5">
+              <h2 class="text-lg font-extrabold text-[#17324d]">New User Records</h2>
+              <button
+                type="button"
+                class="inline-flex items-center gap-1 text-sm font-semibold text-[#008bd2] transition hover:text-[#0067a6]"
+                @click="exportCsv"
+              >
                 Export CSV
                 <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M12 3v12" />
@@ -351,7 +527,7 @@ useHead({
               </button>
             </div>
 
-            <div v-if="pending" class="px-5 py-8 text-sm font-semibold text-[#4b554f]">
+            <div v-if="pending" class="px-5 py-8 text-sm font-semibold text-[#5a6b7c]">
               Loading dashboard records...
             </div>
 
@@ -361,7 +537,7 @@ useHead({
 
             <div v-else class="overflow-x-auto">
               <table class="min-w-[780px] text-left text-xs">
-                <thead class="bg-[#f7f9f8] text-[11px] font-extrabold uppercase tracking-wide text-[#4b554f]">
+                <thead class="bg-[#f4f8fb] text-[11px] font-extrabold uppercase tracking-wide text-[#5a6b7c]">
                   <tr>
                     <th class="w-16 px-4 py-4">No.</th>
                     <th class="w-52 px-3 py-4">User Name</th>
@@ -372,29 +548,29 @@ useHead({
                     <th class="w-28 px-3 py-4">Status</th>
                   </tr>
                 </thead>
-                <tbody class="divide-y divide-[#d6dfd4]">
-                  <tr v-for="row in filteredActivityRows" :key="row.id" class="bg-white">
-                    <td class="px-4 py-4 font-semibold text-[#202622]">#{{ row.no }}</td>
-                    <td class="px-3 py-4 font-bold text-[#202622]">{{ row.receiverName }}</td>
-                    <td class="px-3 py-4 font-semibold text-[#202622]">{{ row.receiverEmpId }}</td>
-                    <td class="px-3 py-4 font-semibold text-[#202622]">{{ row.referrerEmpId }}</td>
-                    <td class="px-3 py-4 font-semibold text-[#202622]">{{ formatOs(row.os) }}</td>
-                    <td class="px-3 py-4 font-semibold text-[#202622]">
+                <tbody class="divide-y divide-[#d7e2ec]">
+                  <tr v-for="row in activityRows" :key="row.id" class="bg-white">
+                    <td class="px-4 py-4 font-semibold text-[#17324d]">#{{ row.no }}</td>
+                    <td class="px-3 py-4 font-bold text-[#17324d]">{{ row.receiverName }}</td>
+                    <td class="px-3 py-4 font-semibold text-[#17324d]">{{ row.receiverEmpId }}</td>
+                    <td class="px-3 py-4 font-semibold text-[#17324d]">{{ row.referrerEmpId }}</td>
+                    <td class="px-3 py-4 font-semibold text-[#17324d]">{{ formatOs(row.os) }}</td>
+                    <td class="px-3 py-4 font-semibold text-[#17324d]">
                       {{ formatDownloadedAt(row.downloadedAt) }}
                     </td>
                     <td class="px-3 py-4">
                       <span
                         class="rounded-full px-2 py-1 text-[11px] font-bold"
                         :class="row.status === 'Downloaded'
-                          ? 'bg-[#e7f8e7] text-[#075f19]'
-                          : 'bg-[#e8e9e8] text-[#515a53]'"
+                          ? 'bg-[#e7f6ed] text-[#128041]'
+                          : 'bg-[#edf2f7] text-[#5a6b7c]'"
                       >
                         {{ row.status }}
                       </span>
                     </td>
                   </tr>
-                  <tr v-if="!filteredActivityRows.length" class="bg-white">
-                    <td colspan="7" class="px-5 py-8 text-center text-sm font-semibold text-[#4b554f]">
+                  <tr v-if="!activityRows.length" class="bg-white">
+                    <td colspan="7" class="px-5 py-8 text-center text-sm font-semibold text-[#5a6b7c]">
                       No download records found.
                     </td>
                   </tr>
@@ -402,12 +578,12 @@ useHead({
               </table>
             </div>
 
-            <div class="flex flex-col gap-3 border-t border-[#d6dfd4] px-5 py-4 text-sm font-semibold text-[#202622] sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex flex-col gap-3 border-t border-[#d7e2ec] px-5 py-4 text-sm font-semibold text-[#17324d] sm:flex-row sm:items-center sm:justify-between">
               <p class="text-xs font-bold">{{ activitySummary }}</p>
               <div class="flex items-center gap-5">
                 <button
                   type="button"
-                  class="flex h-10 w-10 items-center justify-center rounded-md border border-[#c6d2c8] bg-white transition hover:bg-[#eef7ef] disabled:cursor-not-allowed disabled:opacity-40"
+                  class="flex h-10 w-10 items-center justify-center rounded-md border border-[#c9d8e8] bg-white transition hover:bg-[#e8f4fb] disabled:cursor-not-allowed disabled:opacity-40"
                   aria-label="Previous page"
                   :disabled="!canGoPreviousPage"
                   @click="goToPreviousPage"
@@ -419,7 +595,7 @@ useHead({
                 <span>Page {{ pagination.page }} of {{ pagination.pageCount }}</span>
                 <button
                   type="button"
-                  class="flex h-10 w-10 items-center justify-center rounded-md border border-[#c6d2c8] bg-white transition hover:bg-[#eef7ef] disabled:cursor-not-allowed disabled:opacity-40"
+                  class="flex h-10 w-10 items-center justify-center rounded-md border border-[#c9d8e8] bg-white transition hover:bg-[#e8f4fb] disabled:cursor-not-allowed disabled:opacity-40"
                   aria-label="Next page"
                   :disabled="!canGoNextPage"
                   @click="goToNextPage"
@@ -434,17 +610,17 @@ useHead({
         </section>
 
         <aside class="min-w-0 space-y-4">
-          <section class="rounded-lg border border-[#cfdccf] bg-white p-4 shadow-[0_1px_2px_rgba(24,45,26,0.04)]">
+          <section class="rounded-lg border border-[#d7e2ec] bg-white p-4 shadow-[0_1px_2px_rgba(23,50,77,0.06)]">
           <div class="flex items-center justify-between gap-3">
             <div class="flex items-center gap-2">
-              <span class="flex h-6 w-6 items-center justify-center rounded-full bg-[#9a5b08] text-white">
+              <span class="flex h-6 w-6 items-center justify-center rounded-full bg-[#f5b400] text-white">
                 <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                   <path d="m10 1.8 2.2 4.5 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5L2.8 7l5-.7L10 1.8Z" />
                 </svg>
               </span>
-              <h2 class="text-lg font-extrabold text-[#202622]">Top 38 Pioneers</h2>
+              <h2 class="text-lg font-extrabold text-[#17324d]">Top 38 Pioneers</h2>
             </div>
-            <span class="rounded-full bg-[#ffe2c9] px-4 py-2 text-sm font-semibold text-[#4c2500]">
+            <span class="rounded-full bg-[#e8f4fb] px-4 py-2 text-sm font-semibold text-[#0067a6]">
               {{ pioneerStatusLabel }}
             </span>
           </div>
@@ -454,19 +630,25 @@ useHead({
               v-for="pioneer in pioneers"
               :key="pioneer.employeeId"
               class="flex items-center gap-4 rounded-md px-3 py-3"
-              :class="pioneer.qualified ? 'border border-[#cfdccf] bg-[#f8faf9]' : ''"
+              :class="pioneer.qualified ? 'border border-[#c9d8e8] bg-[#f7fbff]' : ''"
             >
               <span
                 class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-base font-extrabold"
-                :class="pioneer.rank === 1 ? 'bg-[#dcf8de] text-[#075f19]' : 'bg-[#e8ebea] text-[#4f5752]'"
+                :class="pioneer.rank === 1 ? 'bg-[#008bd2] text-white' : 'bg-[#edf2f7] text-[#5a6b7c]'"
               >
                 {{ pioneer.rank }}
               </span>
-              <div class="min-w-0 flex-1">
-                <p class="truncate text-sm font-bold text-[#202622]">{{ pioneer.name }}</p>
-                <p class="text-xs font-semibold text-[#202622]">{{ pioneer.employeeId }} - {{ pioneer.refers }} Refers</p>
+              <div class="flex min-w-0 flex-1 items-center justify-between gap-3">
+                <div class="min-w-0">
+                  <p class="truncate text-sm font-bold text-[#17324d]">{{ pioneer.name }}</p>
+                  <p class="mt-0.5 text-xs font-semibold text-[#17324d]">{{ pioneer.employeeId }}</p>
+                </div>
+                <div class="shrink-0 text-right">
+                  <p class="text-sm font-black text-[#008bd2]">{{ pioneer.refers }}</p>
+                  <p class="text-[10px] font-extrabold uppercase text-[#5a6b7c]">Refers</p>
+                </div>
               </div>
-              <svg class="h-5 w-5 shrink-0" :class="pioneer.qualified ? 'text-[#a35b09]' : 'text-[#637069]'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <svg class="h-5 w-5 shrink-0" :class="pioneer.qualified ? 'text-[#f5b400]' : 'text-[#5a6b7c]'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M8 4h8v5a4 4 0 0 1-8 0V4Z" />
                 <path d="M6 6H4v2a4 4 0 0 0 4 4" />
                 <path d="M18 6h2v2a4 4 0 0 1-4 4" />
@@ -475,24 +657,28 @@ useHead({
               </svg>
             </li>
           </ol>
-          <p v-if="!pioneers.length" class="mt-4 rounded-md bg-[#f8faf9] px-3 py-4 text-sm font-semibold text-[#4b554f]">
+          <p v-if="!pioneers.length" class="mt-4 rounded-md bg-[#f7fbff] px-3 py-4 text-sm font-semibold text-[#5a6b7c]">
             No referral downloads recorded yet.
           </p>
 
-          <div class="mt-4 border-t border-[#d6dfd4] pt-4">
+          <div class="mt-4 border-t border-[#d7e2ec] pt-4">
             <div class="grid grid-cols-2 gap-3">
-              <div class="rounded-md border border-[#dbe6dc] bg-[#f5faf6] p-4 text-center">
-                <p class="text-[11px] font-extrabold text-[#202622]">Slots Filled</p>
-                <p class="mt-1 text-2xl font-black text-[#075f19]">{{ pioneerSlotsText }}</p>
+              <div class="rounded-md border border-[#d7e2ec] bg-[#f7fbff] p-4 text-center">
+                <p class="text-[11px] font-extrabold text-[#17324d]">Slots Filled</p>
+                <p class="mt-1 text-2xl font-black text-[#008bd2]">{{ pioneerSlotsText }}</p>
               </div>
-              <div class="rounded-md border border-[#dbe6e8] bg-[#f2f8fc] p-4 text-center">
-                <p class="text-[11px] font-extrabold text-[#202622]">Avg Refers</p>
-                <p class="mt-1 text-2xl font-black text-[#0072bc]">{{ stats.avgRefers }}</p>
+              <div class="rounded-md border border-[#d7e2ec] bg-[#f7fbff] p-4 text-center">
+                <p class="text-[11px] font-extrabold text-[#17324d]">Avg Refers</p>
+                <p class="mt-1 text-2xl font-black text-[#008bd2]">{{ stats.avgRefers }}</p>
               </div>
             </div>
 
-            <button type="button" class="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-[#e2e4e3] text-sm font-semibold text-[#202622] transition hover:bg-[#d6dad8]">
-              View All 38 Winners
+            <button
+              type="button"
+              class="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-[#008bd2] text-sm font-semibold text-white transition hover:bg-[#0067a6]"
+              @click="openWinnersDialog"
+            >
+              View All 38 Pioneers
               <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M5 12h14" />
                 <path d="m13 6 6 6-6 6" />
@@ -500,45 +686,133 @@ useHead({
             </button>
           </div>
           </section>
-
-          <section class="campaign-visual overflow-hidden rounded-lg border border-[#cfdccf] p-5 text-white shadow-[0_1px_2px_rgba(24,45,26,0.04)]">
-            <div class="relative z-10 mt-20">
-              <h2 class="text-lg font-extrabold">Campaign Performance</h2>
-              <p class="mt-2 text-sm font-semibold leading-5">
-                Your referral campaign is performing in the top 5% of all active initiatives this quarter.
-              </p>
-            </div>
-          </section>
         </aside>
       </div>
     </div>
+
+    <div
+      v-if="showWinnersDialog"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-[#102033]/70 px-4 py-6"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="winner-ranking-title"
+      @click.self="closeWinnersDialog"
+    >
+      <section class="max-h-full w-full max-w-2xl overflow-hidden rounded-lg border border-[#d7e2ec] bg-white shadow-2xl">
+        <header class="flex items-start justify-between gap-4 border-b border-[#d7e2ec] px-5 py-4">
+          <div class="min-w-0">
+            <p class="text-xs font-extrabold uppercase text-[#008bd2]">Ranking</p>
+            <h2 id="winner-ranking-title" class="mt-1 text-xl font-black text-[#17324d]">
+              Top 38 Pioneers
+            </h2>
+            <p class="mt-1 text-xs font-semibold text-[#5a6b7c]">
+              {{ pioneerSlotsText }} slots filled - {{ pioneerStatusLabel }}
+            </p>
+          </div>
+          <button
+            type="button"
+            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-[#5a6b7c] transition hover:bg-[#e8f4fb] hover:text-[#008bd2]"
+            aria-label="Close winners ranking"
+            @click="closeWinnersDialog"
+          >
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
+            </svg>
+          </button>
+        </header>
+
+        <div class="max-h-[70vh] overflow-y-auto px-5 py-4">
+          <div class="mb-4 flex flex-col gap-3 border-b border-[#d7e2ec] pb-4 sm:flex-row sm:items-end sm:justify-between">
+            <label class="w-full sm:w-44">
+              <span class="mb-1 block text-[10px] font-extrabold uppercase text-[#5a6b7c]">Sort</span>
+              <select
+                v-model="winnerSort"
+                class="h-10 w-full rounded-md border border-[#c9d8e8] bg-[#f7fbff] px-3 text-xs font-bold text-[#17324d] outline-none transition focus:border-[#008bd2] focus:bg-white focus:ring-2 focus:ring-[#dff1fb]"
+              >
+                <option value="highest">Highest first</option>
+                <option value="lowest">Lowest first</option>
+              </select>
+            </label>
+            <div class="flex flex-col gap-2 sm:items-end">
+              <p class="text-xs font-bold text-[#5a6b7c]">{{ winnerSummary }}</p>
+              <button
+                type="button"
+                class="inline-flex h-9 items-center justify-center gap-1 rounded-md border border-[#c9d8e8] bg-[#f7fbff] px-3 text-xs font-extrabold text-[#008bd2] transition hover:bg-[#e8f4fb] disabled:cursor-not-allowed disabled:opacity-40"
+                :disabled="!sortedWinnerRows.length"
+                @click="exportWinnersCsv"
+              >
+                Export CSV
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 3v12" />
+                  <path d="m8 11 4 4 4-4" />
+                  <path d="M5 21h14" />
+                  <path d="M19 15v6H5v-6" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <ol v-if="paginatedWinnerRows.length" class="space-y-2">
+            <li
+              v-for="pioneer in paginatedWinnerRows"
+              :key="`winner-${pioneer.employeeId}`"
+              class="grid grid-cols-[44px_minmax(0,1fr)_104px] items-center gap-3 rounded-md border border-[#d7e2ec] bg-[#f7fbff] px-3 py-3"
+            >
+              <span
+                class="flex h-10 w-10 items-center justify-center rounded-full text-sm font-black"
+                :class="pioneer.rank === 1 ? 'bg-[#008bd2] text-white' : 'bg-[#edf2f7] text-[#5a6b7c]'"
+              >
+                {{ pioneer.rank }}
+              </span>
+              <div class="min-w-0">
+                <p class="truncate text-sm font-extrabold text-[#17324d]">{{ pioneer.name }}</p>
+                <p class="mt-0.5 text-xs font-semibold text-[#5a6b7c]">{{ pioneer.employeeId }}</p>
+              </div>
+              <div class="text-right">
+                <p class="text-base font-black text-[#008bd2]">{{ numberFormatter.format(pioneer.score) }}</p>
+                <p class="text-[10px] font-extrabold uppercase text-[#5a6b7c]">Score</p>
+                <p class="mt-0.5 text-[10px] font-bold text-[#5a6b7c]">{{ pioneer.refers }} Refers</p>
+              </div>
+            </li>
+          </ol>
+
+          <p v-else class="rounded-md bg-[#f7fbff] px-4 py-8 text-center text-sm font-semibold text-[#5a6b7c]">
+            No pioneer ranking records yet.
+          </p>
+        </div>
+
+        <footer
+          v-if="sortedWinnerRows.length"
+          class="flex items-center justify-between gap-4 border-t border-[#d7e2ec] px-5 py-4 text-sm font-semibold text-[#17324d]"
+        >
+          <button
+            type="button"
+            class="flex h-10 w-10 items-center justify-center rounded-md border border-[#c9d8e8] bg-white transition hover:bg-[#e8f4fb] disabled:cursor-not-allowed disabled:opacity-40"
+            aria-label="Previous winners page"
+            :disabled="!canGoPreviousWinnerPage"
+            @click="goToPreviousWinnerPage"
+          >
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m15 18-6-6 6-6" />
+            </svg>
+          </button>
+
+          <span>Page {{ winnerPage }} of {{ winnerPageCount }}</span>
+
+          <button
+            type="button"
+            class="flex h-10 w-10 items-center justify-center rounded-md border border-[#c9d8e8] bg-white transition hover:bg-[#e8f4fb] disabled:cursor-not-allowed disabled:opacity-40"
+            aria-label="Next winners page"
+            :disabled="!canGoNextWinnerPage"
+            @click="goToNextWinnerPage"
+          >
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m9 18 6-6-6-6" />
+            </svg>
+          </button>
+        </footer>
+      </section>
+    </div>
   </main>
 </template>
-
-<style scoped>
-.campaign-visual {
-  min-height: 180px;
-  position: relative;
-  background:
-    radial-gradient(circle at 52% 56%, rgb(20 160 44 / 95%) 0 8%, transparent 9%),
-    repeating-conic-gradient(from 8deg at 50% 50%, rgb(220 255 221 / 70%) 0deg 4deg, rgb(4 124 22 / 90%) 4deg 10deg, rgb(0 76 14 / 95%) 10deg 15deg),
-    radial-gradient(circle at center, #28aa33 0%, #086b18 48%, #064c13 100%);
-}
-
-.campaign-visual::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(circle at 48% 48%, transparent 0 28%, rgb(255 255 255 / 34%) 29%, transparent 30%),
-    linear-gradient(to top, rgb(0 34 7 / 72%), transparent 62%);
-  mix-blend-mode: screen;
-}
-
-.campaign-visual::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to top, rgb(0 32 7 / 72%) 0%, transparent 62%);
-}
-</style>

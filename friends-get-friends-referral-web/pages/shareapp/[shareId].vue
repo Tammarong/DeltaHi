@@ -31,6 +31,7 @@ const actionError = ref<LocalizedMessage | null>(null)
 const isSubmitting = ref(false)
 const isRecordingClick = ref(false)
 const showDownloadDialog = ref(false)
+const hasStartedDownload = ref(false)
 const languageMenuOpen = ref(false)
 const downloadStep = ref<TutorialStep>('download')
 const employeeLookupDelayMs = 400
@@ -269,6 +270,10 @@ function openDownloadUrl() {
 }
 
 function closeDownloadDialog() {
+  if (hasStartedDownload.value) {
+    return
+  }
+
   showDownloadDialog.value = false
   downloadStep.value = 'download'
   actionError.value = null
@@ -326,6 +331,7 @@ async function downloadApp() {
       return
     }
 
+    hasStartedDownload.value = true
     const detectedOs = getDownloadOs()
 
     if (downloadReceiverEmployee.value) {
@@ -548,6 +554,7 @@ async function submitEmployeeId() {
             </h2>
           </div>
           <button
+            v-if="!hasStartedDownload"
             type="button"
             class="rounded-md px-2 py-1 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
             :aria-label="t('shareApp.actions.closeDownloadPopup')"
