@@ -21,6 +21,7 @@ export type AdminDashboardOptions = {
   pageSize?: number
   search?: string
   os?: 'ios' | 'android' | 'unknown'
+  verificationStatus?: 'verified' | 'unverified'
   dateFrom?: string
   dateTo?: string
 }
@@ -36,6 +37,21 @@ function normalizePositiveInteger(value: number | undefined, fallback: number) {
 function getMockReferrerScore(refers: number, rank: number) {
   // Placeholder until the real referrer score API is connected.
   return (refers * 100) + Math.max(0, 39 - rank)
+}
+
+function getMockAllUsersFromApp() {
+  // Placeholder until the real app user total API is connected.
+  return 12840
+}
+
+const verifiedReceiverIdSuffixes = ['0', '2', '4', '6', '8']
+const unverifiedReceiverIdSuffixes = ['1', '3', '5', '7', '9']
+
+function getMockVerificationStatus(employeeId: string) {
+  // Placeholder until the real verification status API is connected.
+  const lastDigit = employeeId.match(/\d$/)?.[0]
+
+  return lastDigit && verifiedReceiverIdSuffixes.includes(lastDigit) ? 'Verified' : 'Unverified'
 }
 
 function escapeCsvValue(value: string | number) {
@@ -82,6 +98,33 @@ function containsSearch(value: string): Prisma.StringFilter {
   }
 }
 
+function addAndFilter(
+  where: Prisma.EmployeeDownloadWhereInput,
+  filter: Prisma.EmployeeDownloadWhereInput
+) {
+  where.AND = [...(Array.isArray(where.AND) ? where.AND : []), filter]
+}
+
+function getVerificationStatusWhere(
+  verificationStatus: AdminDashboardOptions['verificationStatus']
+): Prisma.EmployeeDownloadWhereInput | undefined {
+  if (!verificationStatus) {
+    return undefined
+  }
+
+  const suffixes = verificationStatus === 'verified'
+    ? verifiedReceiverIdSuffixes
+    : unverifiedReceiverIdSuffixes
+
+  return {
+    OR: suffixes.map((suffix) => ({
+      recieverEmpId: {
+        endsWith: suffix
+      }
+    }))
+  }
+}
+
 function buildDownloadWhere(options: AdminDashboardOptions): Prisma.EmployeeDownloadWhereInput {
   const where: Prisma.EmployeeDownloadWhereInput = {
     deletedAt: null
@@ -89,6 +132,7 @@ function buildDownloadWhere(options: AdminDashboardOptions): Prisma.EmployeeDown
   const search = options.search?.trim()
   const dateFrom = parseBangkokDateStart(options.dateFrom)
   const dateTo = parseBangkokDateEnd(options.dateTo)
+  const verificationStatusWhere = getVerificationStatusWhere(options.verificationStatus)
 
   if (options.os) {
     where.os = options.os
@@ -101,22 +145,24 @@ function buildDownloadWhere(options: AdminDashboardOptions): Prisma.EmployeeDown
     }
   }
 
+  if (verificationStatusWhere) {
+    addAndFilter(where, verificationStatusWhere)
+  }
+
   if (search) {
-    where.AND = [
-      {
-        OR: [
-          { recieverEmpId: containsSearch(search) },
-          { os: containsSearch(search) },
-          { receiverEmployee: { is: { empid: containsSearch(search) } } },
-          { receiverEmployee: { is: { name: containsSearch(search) } } },
-          { receiverEmployee: { is: { surname: containsSearch(search) } } },
-          { share: { is: { employeeId: containsSearch(search) } } },
-          { share: { is: { employee: { is: { empid: containsSearch(search) } } } } },
-          { share: { is: { employee: { is: { name: containsSearch(search) } } } } },
-          { share: { is: { employee: { is: { surname: containsSearch(search) } } } } }
-        ]
-      }
-    ]
+    addAndFilter(where, {
+      OR: [
+        { recieverEmpId: containsSearch(search) },
+        { os: containsSearch(search) },
+        { receiverEmployee: { is: { empid: containsSearch(search) } } },
+        { receiverEmployee: { is: { name: containsSearch(search) } } },
+        { receiverEmployee: { is: { surname: containsSearch(search) } } },
+        { share: { is: { employeeId: containsSearch(search) } } },
+        { share: { is: { employee: { is: { empid: containsSearch(search) } } } } },
+        { share: { is: { employee: { is: { name: containsSearch(search) } } } } },
+        { share: { is: { employee: { is: { surname: containsSearch(search) } } } } }
+      ]
+    })
   }
 
   return where
@@ -126,17 +172,27 @@ export async function getAdminDashboard(options: AdminDashboardOptions = {}) {
   const requestedPage = normalizePositiveInteger(options.page, 1)
   const pageSize = Math.min(normalizePositiveInteger(options.pageSize, 10), 50)
   const downloadWhere = buildDownloadWhere(options)
+  const campaignStatsWhere = buildDownloadWhere({
+    ...options,
+    verificationStatus: undefined
+  })
+  const verifiedCampaignStatsWhere = buildDownloadWhere({
+    ...options,
+    verificationStatus: 'verified'
+  })
   const leaderboardWhere: Prisma.EmployeeDownloadWhereInput = {
     deletedAt: null
   }
   const [
     totalDownloads,
-    receivers,
+    verifiedReceivers,
+    campaignReceivers,
     downloadsByShare,
     leaderboardDownloadsByShare
   ] = await Promise.all([
     countActiveEmployeeDownloads(prisma, downloadWhere),
-    groupActiveEmployeeDownloadsByReceiver(prisma, downloadWhere),
+    groupActiveEmployeeDownloadsByReceiver(prisma, verifiedCampaignStatsWhere),
+    groupActiveEmployeeDownloadsByReceiver(prisma, campaignStatsWhere),
     groupActiveEmployeeDownloadsByShare(prisma, downloadWhere),
     groupActiveEmployeeDownloadsByShare(prisma, leaderboardWhere)
   ])
@@ -193,7 +249,9 @@ export async function getAdminDashboard(options: AdminDashboardOptions = {}) {
   return {
     stats: {
       totalDownloads,
-      newUsers: receivers.length,
+      allUsersFromApp: getMockAllUsersFromApp(),
+      newUsers: verifiedReceivers.length,
+      campaignUsers: campaignReceivers.length,
       first38Users: topPioneers.length,
       pioneerSlots: 38,
       avgRefers: leaderboardDownloadsByShare.length
@@ -209,7 +267,7 @@ export async function getAdminDashboard(options: AdminDashboardOptions = {}) {
       referrerEmpId: download.share.employeeId,
       os: download.os,
       downloadedAt: download.createdAt.toISOString(),
-      status: 'Downloaded'
+      status: getMockVerificationStatus(download.recieverEmpId)
     })),
     pagination: {
       page,
@@ -243,7 +301,7 @@ export async function getAdminDownloadsCsv(options: AdminDashboardOptions = {}) 
     download.share.employeeId,
     download.os,
     download.createdAt.toISOString(),
-    'Downloaded'
+    getMockVerificationStatus(download.recieverEmpId)
   ]))
 
   return `\uFEFF${[toCsvRow(headers), ...rows].join('\n')}\n`

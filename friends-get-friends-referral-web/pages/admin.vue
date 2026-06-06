@@ -11,7 +11,7 @@ type DashboardDownload = {
   referrerEmpId: string
   os: string
   downloadedAt: string
-  status: string
+  status: 'Verified' | 'Unverified'
 }
 
 type DashboardPioneer = {
@@ -36,7 +36,9 @@ type DashboardWinner = {
 type AdminDashboardResponse = {
   stats: {
     totalDownloads: number
+    allUsersFromApp: number
     newUsers: number
+    campaignUsers: number
     first38Users: number
     pioneerSlots: number
     avgRefers: number
@@ -53,7 +55,10 @@ type AdminDashboardResponse = {
 }
 
 const searchQuery = ref('')
+const debouncedSearchQuery = ref('')
+let searchDebounceTimer: ReturnType<typeof setTimeout> | undefined
 const osFilter = ref<'all' | 'ios' | 'android' | 'unknown'>('all')
+const verificationStatusFilter = ref<'all' | 'verified' | 'unverified'>('all')
 const dateFromFilter = ref('')
 const dateToFilter = ref('')
 const currentPage = ref(1)
@@ -71,8 +76,9 @@ const downloadedAtFormatter = new Intl.DateTimeFormat('en-GB', {
 const dashboardQuery = computed(() => ({
   page: currentPage.value,
   pageSize,
-  search: searchQuery.value.trim() || undefined,
+  search: debouncedSearchQuery.value.trim() || undefined,
   os: osFilter.value === 'all' ? undefined : osFilter.value,
+  verificationStatus: verificationStatusFilter.value === 'all' ? undefined : verificationStatusFilter.value,
   dateFrom: dateFromFilter.value || undefined,
   dateTo: dateToFilter.value || undefined
 }))
@@ -89,7 +95,9 @@ const {
 
 const stats = computed(() => dashboard.value?.stats ?? {
   totalDownloads: 0,
+  allUsersFromApp: 0,
   newUsers: 0,
+  campaignUsers: 0,
   first38Users: 0,
   pioneerSlots: 38,
   avgRefers: 0
@@ -106,21 +114,28 @@ const first38Progress = computed(() => {
 const statCards = computed(() => {
   return [
     {
-      label: 'Total Downloads',
-      value: numberFormatter.format(stats.value.totalDownloads),
-      helper: 'Recorded app download clicks',
+      label: 'All Users From App',
+      value: numberFormatter.format(stats.value.allUsersFromApp),
+      helper: 'Mock total from app',
       tone: 'blue',
-      icon: 'download'
+      icon: 'app'
     },
     {
-      label: 'New Users',
+      label: 'New User',
       value: numberFormatter.format(stats.value.newUsers),
-      helper: 'Unique receiver employee IDs',
+      helper: 'Verified users only',
       tone: 'green',
       icon: 'user'
     },
     {
-      label: 'First 38 Users',
+      label: 'New User From Campaign',
+      value: numberFormatter.format(stats.value.campaignUsers),
+      helper: 'Verified + unverified',
+      tone: 'blue',
+      icon: 'download'
+    },
+    {
+      label: 'Top 38',
       value: numberFormatter.format(stats.value.first38Users),
       helper: `/ ${stats.value.pioneerSlots}`,
       trend: `${first38Progress.value}%`,
@@ -145,8 +160,9 @@ const pioneerStatusLabel = computed(() =>
   stats.value.first38Users >= stats.value.pioneerSlots ? 'Qualified' : 'In Progress'
 )
 const hasActiveFilters = computed(() =>
-  Boolean(searchQuery.value.trim()) ||
+  Boolean(debouncedSearchQuery.value.trim()) ||
   osFilter.value !== 'all' ||
+  verificationStatusFilter.value !== 'all' ||
   Boolean(dateFromFilter.value) ||
   Boolean(dateToFilter.value)
 )
@@ -202,7 +218,17 @@ const winnerSummary = computed(() => {
 const canGoPreviousWinnerPage = computed(() => winnerPage.value > 1)
 const canGoNextWinnerPage = computed(() => winnerPage.value < winnerPageCount.value)
 
-watch([searchQuery, osFilter, dateFromFilter, dateToFilter], () => {
+watch(searchQuery, (value) => {
+  if (searchDebounceTimer) {
+    clearTimeout(searchDebounceTimer)
+  }
+
+  searchDebounceTimer = setTimeout(() => {
+    debouncedSearchQuery.value = value
+  }, 350)
+})
+
+watch([debouncedSearchQuery, osFilter, verificationStatusFilter, dateFromFilter, dateToFilter], () => {
   const isAlreadyFirstPage = currentPage.value === 1
 
   currentPage.value = 1
@@ -223,6 +249,12 @@ watch([winnerSort, pioneers], () => {
 function refreshDashboard() {
   void refresh()
 }
+
+onBeforeUnmount(() => {
+  if (searchDebounceTimer) {
+    clearTimeout(searchDebounceTimer)
+  }
+})
 
 function formatDownloadedAt(value: string) {
   return downloadedAtFormatter.format(new Date(value))
@@ -257,8 +289,15 @@ function goToNextPage() {
 }
 
 async function resetFilters() {
+  if (searchDebounceTimer) {
+    clearTimeout(searchDebounceTimer)
+    searchDebounceTimer = undefined
+  }
+
   searchQuery.value = ''
+  debouncedSearchQuery.value = ''
   osFilter.value = 'all'
+  verificationStatusFilter.value = 'all'
   dateFromFilter.value = ''
   dateToFilter.value = ''
   currentPage.value = 1
@@ -273,12 +312,16 @@ function exportCsv() {
 
   const params = new URLSearchParams()
 
-  if (searchQuery.value.trim()) {
-    params.set('search', searchQuery.value.trim())
+  if (debouncedSearchQuery.value.trim()) {
+    params.set('search', debouncedSearchQuery.value.trim())
   }
 
   if (osFilter.value !== 'all') {
     params.set('os', osFilter.value)
+  }
+
+  if (verificationStatusFilter.value !== 'all') {
+    params.set('verificationStatus', verificationStatusFilter.value)
   }
 
   if (dateFromFilter.value) {
@@ -366,7 +409,7 @@ useHead({
 <template>
   <main class="min-h-screen overflow-x-hidden bg-[#f4f8fb] text-[#17324d]">
     <header class="border-b border-[#c9d8e8] bg-white/95">
-      <div class="mx-auto flex min-h-[56px] w-full max-w-7xl items-center px-5 py-3 sm:px-6">
+      <div class="mx-auto flex min-h-[56px] w-full max-w-7xl items-center px-5 py-4 sm:px-6">
         <div class="flex min-w-0 items-center gap-3">
           <img
             :src="deltaLogoUrl"
@@ -381,14 +424,14 @@ useHead({
     </header>
 
     <div class="mx-auto w-full max-w-7xl space-y-5 px-4 py-5 sm:px-6 lg:py-6">
-      <section class="grid gap-4 md:grid-cols-3">
+      <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <article
           v-for="card in statCards"
           :key="card.label"
           class="relative min-h-[132px] rounded-lg border border-[#d7e2ec] bg-white p-4 shadow-[0_1px_2px_rgba(23,50,77,0.06)]"
         >
           <div
-            v-if="card.label === 'First 38 Users' && first38Progress >= 100"
+            v-if="card.label === 'Top 38' && first38Progress >= 100"
             class="absolute right-0 top-0 rounded-bl-sm rounded-tr-lg bg-[#f5b400] px-3 py-1 text-[9px] font-extrabold uppercase text-[#17324d]"
           >
             Goal Reached
@@ -403,7 +446,11 @@ useHead({
                 'bg-[#fff7df] text-[#b77900]': card.tone === 'yellow'
               }"
             >
-              <svg v-if="card.icon === 'download'" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <svg v-if="card.icon === 'app'" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="7" y="3" width="10" height="18" rx="2" />
+                <path d="M10 17h4" />
+              </svg>
+              <svg v-else-if="card.icon === 'download'" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M12 3v10" />
                 <path d="m8 9 4 4 4-4" />
                 <path d="M5 17v3h14v-3" />
@@ -427,11 +474,11 @@ useHead({
             <p class="text-[11px] font-extrabold leading-4 text-[#5a6b7c]">{{ card.label }}</p>
             <p class="mt-1 text-[28px] font-black leading-8 tracking-normal text-[#17324d]">
               {{ card.value }}
-              <span v-if="card.label === 'First 38 Users'" class="text-base font-semibold text-[#17324d]">
+              <span v-if="card.label === 'Top 38'" class="text-base font-semibold text-[#17324d]">
                 {{ card.helper }}
               </span>
             </p>
-            <p v-if="card.label !== 'First 38 Users'" class="mt-1 text-[11px] font-semibold leading-4 text-[#17324d]">
+            <p v-if="card.label !== 'Top 38'" class="mt-1 text-[11px] font-semibold leading-4 text-[#17324d]">
               {{ card.helper }}
             </p>
             <div v-else class="mt-3 h-2 rounded-full bg-[#edf2f7]">
@@ -444,7 +491,7 @@ useHead({
       <div class="grid min-h-0 gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
         <section class="min-w-0 space-y-4">
           <section class="rounded-lg border border-[#d7e2ec] bg-white p-4 shadow-[0_1px_2px_rgba(23,50,77,0.06)]">
-            <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(280px,1.35fr)_128px_148px_148px_104px] xl:items-end">
+            <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(240px,1.2fr)_118px_142px_140px_140px] xl:items-end">
               <label class="min-w-0">
                 <span class="mb-1 block text-[10px] font-extrabold uppercase text-[#5a6b7c]">Search</span>
                 <span class="relative block">
@@ -475,6 +522,18 @@ useHead({
               </label>
 
               <label class="min-w-0">
+                <span class="mb-1 block text-[10px] font-extrabold uppercase text-[#5a6b7c]">Status</span>
+                <select
+                  v-model="verificationStatusFilter"
+                  class="h-10 w-full rounded-md border border-[#c9d8e8] bg-[#f7fbff] px-3 text-xs font-bold text-[#17324d] outline-none transition focus:border-[#008bd2] focus:bg-white focus:ring-2 focus:ring-[#dff1fb]"
+                >
+                  <option value="all">All Status</option>
+                  <option value="verified">Verified</option>
+                  <option value="unverified">Unverified</option>
+                </select>
+              </label>
+
+              <label class="min-w-0">
                 <span class="mb-1 block text-[10px] font-extrabold uppercase text-[#5a6b7c]">From</span>
                 <input
                   v-model="dateFromFilter"
@@ -491,91 +550,94 @@ useHead({
                   class="h-10 w-full rounded-md border border-[#c9d8e8] bg-[#f7fbff] px-3 text-xs font-bold text-[#17324d] outline-none transition focus:border-[#008bd2] focus:bg-white focus:ring-2 focus:ring-[#dff1fb]"
                 >
               </label>
-
-              <button
-                type="button"
-                class="flex h-10 w-10 min-w-0 items-center justify-center rounded-md border border-[#c9d8e8] bg-[#f7fbff] text-[#008bd2] transition hover:bg-[#e8f4fb] md:col-span-2 xl:col-span-1"
-                aria-label="Reset filters"
-                title="Reset filters"
-                @click="resetFilters"
-              >
-                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M3 12a9 9 0 0 1 15.2-6.5" />
-                  <path d="M18 2v4h-4" />
-                  <path d="M21 12a9 9 0 0 1-15.2 6.5" />
-                  <path d="M6 22v-4h4" />
-                </svg>
-              </button>
             </div>
           </section>
 
           <section class="min-w-0 overflow-hidden rounded-lg border border-[#d7e2ec] bg-white shadow-[0_1px_2px_rgba(23,50,77,0.06)]">
             <div class="flex items-center justify-between gap-4 border-b border-[#d7e2ec] px-5 py-5">
               <h2 class="text-lg font-extrabold text-[#17324d]">New User Records</h2>
-              <button
-                type="button"
-                class="inline-flex items-center gap-1 text-sm font-semibold text-[#008bd2] transition hover:text-[#0067a6]"
-                @click="exportCsv"
-              >
-                Export CSV
-                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M12 3v12" />
-                  <path d="m8 11 4 4 4-4" />
-                  <path d="M5 21h14" />
-                  <path d="M19 15v6H5v-6" />
-                </svg>
-              </button>
+              <div class="flex shrink-0 items-center gap-2">
+                <button
+                  type="button"
+                  class="inline-flex h-10 items-center gap-1 rounded-md px-2 text-sm font-semibold text-[#008bd2] transition hover:bg-[#e8f4fb] hover:text-[#0067a6] border border-[#c9d8e8] bg-[#f7fbff]"
+                  @click="exportCsv"
+                >
+                  Export CSV
+                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 3v12" />
+                    <path d="m8 11 4 4 4-4" />
+                    <path d="M5 21h14" />
+                    <path d="M19 15v6H5v-6" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  class="flex h-10 w-10 items-center justify-center rounded-md border border-[#c9d8e8] bg-[#f7fbff] text-[#008bd2] transition hover:bg-[#e8f4fb]"
+                  aria-label="Reset filters"
+                  title="Reset filters"
+                  @click="resetFilters"
+                >
+                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M3 12a9 9 0 0 1 15.2-6.5" />
+                    <path d="M18 2v4h-4" />
+                    <path d="M21 12a9 9 0 0 1-15.2 6.5" />
+                    <path d="M6 22v-4h4" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
-            <div v-if="pending" class="px-5 py-8 text-sm font-semibold text-[#5a6b7c]">
-              Loading dashboard records...
-            </div>
-
-            <div v-else-if="error" class="px-5 py-8 text-sm font-semibold text-red-700">
+            <div v-if="error" class="px-5 py-8 text-sm font-semibold text-red-700">
               Unable to load dashboard records.
             </div>
 
-            <div v-else class="overflow-x-auto">
-              <table class="min-w-[780px] text-left text-xs">
-                <thead class="bg-[#f4f8fb] text-[11px] font-extrabold uppercase tracking-wide text-[#5a6b7c]">
-                  <tr>
-                    <th class="w-16 px-4 py-4">No.</th>
-                    <th class="w-52 px-3 py-4">User Name</th>
-                    <th class="w-28 px-3 py-4">Employee ID</th>
-                    <th class="w-28 px-3 py-4">Referrer ID</th>
-                    <th class="w-24 px-3 py-4">OS</th>
-                    <th class="w-40 px-3 py-4">Downloaded At</th>
-                    <th class="w-28 px-3 py-4">Status</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-[#d7e2ec]">
-                  <tr v-for="row in activityRows" :key="row.id" class="bg-white">
-                    <td class="px-4 py-4 font-semibold text-[#17324d]">#{{ row.no }}</td>
-                    <td class="px-3 py-4 font-bold text-[#17324d]">{{ row.receiverName }}</td>
-                    <td class="px-3 py-4 font-semibold text-[#17324d]">{{ row.receiverEmpId }}</td>
-                    <td class="px-3 py-4 font-semibold text-[#17324d]">{{ row.referrerEmpId }}</td>
-                    <td class="px-3 py-4 font-semibold text-[#17324d]">{{ formatOs(row.os) }}</td>
-                    <td class="px-3 py-4 font-semibold text-[#17324d]">
-                      {{ formatDownloadedAt(row.downloadedAt) }}
-                    </td>
-                    <td class="px-3 py-4">
-                      <span
-                        class="rounded-full px-2 py-1 text-[11px] font-bold"
-                        :class="row.status === 'Downloaded'
-                          ? 'bg-[#e7f6ed] text-[#128041]'
-                          : 'bg-[#edf2f7] text-[#5a6b7c]'"
-                      >
-                        {{ row.status }}
-                      </span>
-                    </td>
-                  </tr>
-                  <tr v-if="!activityRows.length" class="bg-white">
-                    <td colspan="7" class="px-5 py-8 text-center text-sm font-semibold text-[#5a6b7c]">
-                      No download records found.
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+            <div v-else class="relative min-h-[210px]" :aria-busy="pending">
+              <div
+                class="overflow-x-auto transition-all duration-300 ease-out"
+                :class="pending ? 'opacity-70 blur-[0.5px]' : 'opacity-100 blur-0'"
+              >
+                <table class="min-w-[780px] text-left text-xs">
+                  <thead class="bg-[#f4f8fb] text-[11px] font-extrabold uppercase tracking-wide text-[#5a6b7c]">
+                    <tr>
+                      <th class="w-16 px-4 py-4">No.</th>
+                      <th class="w-52 px-3 py-4">User Name</th>
+                      <th class="w-28 px-3 py-4">Employee ID</th>
+                      <th class="w-28 px-3 py-4">Referrer ID</th>
+                      <th class="w-24 px-3 py-4">OS</th>
+                      <th class="w-40 px-3 py-4">Downloaded At</th>
+                      <th class="w-28 px-3 py-4">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-[#d7e2ec]">
+                    <tr v-for="row in activityRows" :key="row.id" class="bg-white">
+                      <td class="px-4 py-4 font-semibold text-[#17324d]">#{{ row.no }}</td>
+                      <td class="px-3 py-4 font-bold text-[#17324d]">{{ row.receiverName }}</td>
+                      <td class="px-3 py-4 font-semibold text-[#17324d]">{{ row.receiverEmpId }}</td>
+                      <td class="px-3 py-4 font-semibold text-[#17324d]">{{ row.referrerEmpId }}</td>
+                      <td class="px-3 py-4 font-semibold text-[#17324d]">{{ formatOs(row.os) }}</td>
+                      <td class="px-3 py-4 font-semibold text-[#17324d]">
+                        {{ formatDownloadedAt(row.downloadedAt) }}
+                      </td>
+                      <td class="px-3 py-4">
+                        <span
+                          class="rounded-full px-2 py-1 text-[11px] font-bold"
+                          :class="row.status === 'Verified'
+                            ? 'bg-[#e7f6ed] text-[#128041]'
+                            : 'bg-[#fff7df] text-[#b77900]'"
+                        >
+                          {{ row.status }}
+                        </span>
+                      </td>
+                    </tr>
+                    <tr v-if="!activityRows.length" class="bg-white">
+                      <td colspan="7" class="px-5 py-8 text-center text-sm font-semibold text-[#5a6b7c]">
+                        No download records found.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
             </div>
 
             <div class="flex flex-col gap-3 border-t border-[#d7e2ec] px-5 py-4 text-sm font-semibold text-[#17324d] sm:flex-row sm:items-center sm:justify-between">
@@ -738,7 +800,7 @@ useHead({
               <p class="text-xs font-bold text-[#5a6b7c]">{{ winnerSummary }}</p>
               <button
                 type="button"
-                class="inline-flex h-9 items-center justify-center gap-1 rounded-md border border-[#c9d8e8] bg-[#f7fbff] px-3 text-xs font-extrabold text-[#008bd2] transition hover:bg-[#e8f4fb] disabled:cursor-not-allowed disabled:opacity-40"
+                class="inline-flex h-9 items-center justify-center gap-1 rounded-md border border-[#c9d8e8] bg-[#f7fbff] px-3 text-xs font-extrabold text-[#008bd2] hover:text-[#0067a6] transition hover:bg-[#e8f4fb] disabled:cursor-not-allowed disabled:opacity-40"
                 :disabled="!sortedWinnerRows.length"
                 @click="exportWinnersCsv"
               >

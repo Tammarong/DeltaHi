@@ -18,11 +18,22 @@ function getQueryOs(value: unknown) {
   return undefined
 }
 
+function getQueryVerificationStatus(value: unknown) {
+  const verificationStatus = getQueryString(value)
+
+  if (verificationStatus === 'verified' || verificationStatus === 'unverified') {
+    return verificationStatus
+  }
+
+  return undefined
+}
+
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const csv = await getAdminDownloadsCsv({
     search: getQueryString(query.search),
     os: getQueryOs(query.os),
+    verificationStatus: getQueryVerificationStatus(query.verificationStatus),
     dateFrom: getQueryString(query.dateFrom),
     dateTo: getQueryString(query.dateTo)
   })
