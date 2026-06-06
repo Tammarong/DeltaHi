@@ -2,6 +2,10 @@
   "qrPage": {
     "title": "กิจกรรม Friends Get Friends",
     "subtitle": "สแกน QR code นี้ เพื่อดาวน์โหลด DeltaHi",
+    "banner": {
+      "title": "ดาวน์โหลดแอป DeltaHi",
+      "description": "เข้าร่วมกิจกรรม Friends Get Friends และดำเนินการต่อบนอุปกรณ์มือถือของคุณ"
+    },
     "status": {
       "loading": "กำลังโหลด QR แนะนำ..."
     },
@@ -12,6 +16,10 @@
   "shareApp": {
     "header": "การแนะนำ DeltaHi",
     "title": "กรอกรหัสพนักงานของคุณ",
+    "banner": {
+      "title": "ดำเนินการต่อเพื่อดาวน์โหลด DeltaHi",
+      "description": "ยืนยันรหัสพนักงานของคุณก่อนดำเนินการต่อเพื่อดาวน์โหลดแอป"
+    },
     "language": {
       "change": "เปลี่ยนภาษา",
       "options": "ตัวเลือกภาษา",

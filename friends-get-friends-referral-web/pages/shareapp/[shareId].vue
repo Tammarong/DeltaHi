@@ -460,6 +460,13 @@ async function submitEmployeeId() {
           {{ t('shareApp.title') }}
         </h1>
 
+        <ReferralBanner
+          class="mt-6"
+          variant="verify"
+          :title="t('shareApp.banner.title')"
+          :description="t('shareApp.banner.description')"
+        />
+
         <div v-if="pending" class="mt-6 rounded-md bg-slate-100 p-4 text-sm text-slate-700">
           {{ t('shareApp.status.checkingReferral') }}
         </div>

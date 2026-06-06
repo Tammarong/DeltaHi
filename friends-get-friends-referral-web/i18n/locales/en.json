@@ -2,6 +2,10 @@
   "qrPage": {
     "title": "Friends Get Friends Event",
     "subtitle": "Scan this QR code to download DeltaHi",
+    "banner": {
+      "title": "Download DeltaHi App",
+      "description": "Join the Friends Get Friends event and continue on your mobile device."
+    },
     "status": {
       "loading": "Loading referral QR..."
     },
@@ -12,6 +16,10 @@
   "shareApp": {
     "header": "DeltaHi referral",
     "title": "Enter your employee ID",
+    "banner": {
+      "title": "Continue to DeltaHi Download",
+      "description": "Verify your employee ID before continuing to the app download."
+    },
     "language": {
       "change": "Change language",
       "options": "Language options",

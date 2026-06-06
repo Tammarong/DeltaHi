@@ -2,6 +2,7 @@
 import QRCode from 'qrcode'
 import appDeltaHiLogoUrl from '~/assets/img/App_DeltaHi_Logo.png'
 import deltaLogoUrl from '~/assets/img/Delta_Logo.png'
+import deltaHiBannerUrl from '~/assets/img/DeltaHi Banner.svg'
 
 
 type EmployeeShare = {
@@ -230,6 +231,21 @@ onMounted(() => {
         <p class="mt-1 text-sm leading-6 text-slate-600">
           {{ t('qrPage.subtitle') }}
         </p>
+        <section class="mt-3 overflow-hidden rounded-lg border border-sky-200 shadow-[0_1px_2px_rgba(23,50,77,0.06)]">
+                <img 
+                :src="deltaHiBannerUrl" 
+                alt="DeltaHi ads download banner"
+                class="block h-auto w-full"
+                >
+        </section>
+
+        <ReferralBanner
+          class="mt-3"
+          variant="download"
+          :title="t('qrPage.banner.title')"
+          :description="t('qrPage.banner.description')"
+        />
+        
 
         <div
           v-if="isLoadingShare"

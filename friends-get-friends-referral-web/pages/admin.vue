@@ -1,6 +1,7 @@
 <script setup lang="ts">
 
 import deltaLogoUrl from '~/assets/img/Delta_Logo.png'
+import deltaHiBannerUrl from '~/assets/img/DeltaHi Banner.svg'
 
 type DashboardDownload = {
   id: string
@@ -747,6 +748,14 @@ useHead({
               </svg>
             </button>
           </div>
+          </section>
+
+          <section class="overflow-hidden rounded-lg border border-[#d7e2ec] bg-white shadow-[0_1px_2px_rgba(23,50,77,0.06)]">
+            <img
+              :src="deltaHiBannerUrl"
+              alt="DeltaHi app download banner"
+              class="block h-auto w-full"
+            >
           </section>
         </aside>
       </div>
