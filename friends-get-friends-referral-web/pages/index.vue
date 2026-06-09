@@ -9,6 +9,7 @@ type EmployeeShare = {
   id: string
   userId: string
   employeeId: string
+  employeeName: string
   shareUrl: string
   createdAt: string
   updatedAt: string
@@ -224,28 +225,13 @@ onMounted(() => {
             </div>
           </div>
         </div>
-        <h1 class="mt-4 text-2xl font-semibold tracking-normal text-slate-950">
+        <h1 class="mt-5 text-2xl font-semibold tracking-normal text-slate-950">
           {{ t('qrPage.title') }}
         </h1>
 
         <p class="mt-1 text-sm leading-6 text-slate-600">
           {{ t('qrPage.subtitle') }}
         </p>
-        <section class="mt-3 overflow-hidden rounded-lg border border-sky-200 shadow-[0_1px_2px_rgba(23,50,77,0.06)]">
-                <img 
-                :src="deltaHiBannerUrl" 
-                alt="DeltaHi ads download banner"
-                class="block h-auto w-full"
-                >
-        </section>
-
-        <ReferralBanner
-          class="mt-3"
-          variant="download"
-          :title="t('qrPage.banner.title')"
-          :description="t('qrPage.banner.description')"
-        />
-        
 
         <div
           v-if="isLoadingShare"
@@ -275,25 +261,42 @@ onMounted(() => {
           </div>
         </div>
         <footer class="mt-6 border-t border-slate-200 pt-5 text-sm">
-          <p class="font-semibold text-slate-950">{{ t('shareApp.footer.title') }}</p>
-          <p class="mt-1 text-slate-600">{{ t('shareApp.footer.description') }}</p>
-
-          <div class="mt-4 space-y-3">
+          <div class="space-y-3">
             <div
               v-for="team in contactTeam"
               :key="team.name"
-              class="rounded-md border border-slate-200 bg-slate-50 p-3"
+              class="rounded-md border border-slate-200 bg-white p-3"
             >
-              <p class="font-medium text-slate-900">
-                {{ team.name }} - {{ team.nickname }}
-              </p>
+              <div class="flex min-w-0 items-center gap-3">
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-700">
+                  <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M3 12a9 9 0 0 1 18 0" />
+                    <path d="M3 13v3a2 2 0 0 0 2 2h1v-7H5a2 2 0 0 0-2 2Z" />
+                    <path d="M21 13v3a2 2 0 0 1-2 2h-1v-7h1a2 2 0 0 1 2 2Z" />
+                    <path d="M13 20h2a3 3 0 0 0 3-3" />
+                  </svg>
+                </div>
+                <div class="min-w-0">
+                  <p class="font-semibold text-slate-950">{{ t('shareApp.help.title') }}</p>
+                  <p class="mt-1 leading-6 text-slate-700">
+                    {{ t('shareApp.help.description', { team: `${team.name} - ${team.nickname}` }) }}
+                  </p>
+                </div>
+              </div>
               <a
-                class="mt-1 inline-block font-medium text-brand-700 underline-offset-4 transition hover:text-brand-800 hover:underline"
+                class="mt-3 inline-flex h-9 items-center justify-center rounded-md border border-brand-600 bg-brand-600 px-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
                 :href="`https://oa.deltaww.com.cn/WebAPI/openApp/openAppNew.html?ModuleID=41`"
               >
-                {{ t('shareApp.footer.clickHere') }}
+                {{ t('shareApp.help.contactSupport') }}
               </a>
             </div>
+            <section class="mt-3 overflow-hidden rounded-lg border border-slate-150 shadow-[0_1px_2px_rgba(23,50,77,0.06)]">
+              <img
+                :src="deltaHiBannerUrl"
+                alt="DeltaHi ads download banner"
+                class="block h-auto w-full"
+              >
+            </section>
           </div>
         </footer>
       </div>

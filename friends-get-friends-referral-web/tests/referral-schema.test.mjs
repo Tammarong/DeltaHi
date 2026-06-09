@@ -16,9 +16,12 @@ test('Prisma schema models external Delta references and local referral relation
   assert.match(schema, /schemas\s*=\s*\[[\s\S]*"service_user"[\s\S]*"dbo"[\s\S]*\]/)
   assert.match(schema, /model ServiceUser[\s\S]*@@schema\("service_user"\)/)
   assert.match(schema, /model HrEmployeeBasicInfo[\s\S]*@@schema\("dbo"\)/)
+  assert.match(schema, /employeeName\s+String\?\s+@map\("employee_name"\)\s+@db\.VarChar/)
   assert.match(schema, /employee\s+HrEmployeeBasicInfo\s+@relation\(fields: \[employeeId\], references: \[empid\]/)
   assert.match(schema, /receiverEmployee\s+HrEmployeeBasicInfo\s+@relation\(fields: \[recieverEmpId\], references: \[empid\]/)
   assert.match(schema, /os\s+String\s+@default\("unknown"\)\s+@db\.VarChar\(16\)/)
+  assert.match(schema, /verificationStatus\s+String\s+@default\("unverified"\)\s+@map\("verification_status"\)\s+@db\.VarChar\(16\)/)
+  assert.match(schema, /verifiedAt\s+DateTime\?\s+@map\("verified_at"\)\s+@db\.Timestamptz\(6\)/)
 })
 
 test('migration adds required foreign keys without creating external Delta tables', () => {
@@ -41,6 +44,48 @@ test('example data includes rows for all referenced tables', () => {
   assert.match(seedSql, /INSERT INTO "employee_download"/)
 })
 
+test('employee shares persist and expose the referrer employee name', () => {
+  const migration = readProjectFile('prisma/migrations/20260608000000_add_employee_share_employee_name/migration.sql')
+  const repository = readProjectFile('server/repositories/referralRepository.ts')
+  const service = readProjectFile('server/services/referralService.ts')
+  const utils = readProjectFile('server/utils/referral.ts')
+  const sharedTypes = readProjectFile('shared/types/referral.ts')
+  const sharePage = readProjectFile('pages/shareapp/[shareId].vue')
+
+  assert.match(migration, /ADD COLUMN "employee_name" varchar/)
+  assert.match(migration, /concat_ws\(' ', employee\."name", employee\."surname"\)/)
+  assert.match(repository, /employeeName:\s*string/)
+  assert.match(repository, /employeeName:\s*data\.employeeName/)
+  assert.match(service, /employeeName:\s*getEmployeeDisplayName\(employee\) \|\| input\.employeeId/)
+  assert.match(utils, /export function getEmployeeDisplayName/)
+  assert.match(utils, /employeeName:\s*share\.employeeName\?\.trim\(\) \|\| getEmployeeDisplayName\(share\.employee\) \|\| share\.employeeId/)
+  assert.match(sharedTypes, /employeeName:\s*string/)
+  assert.match(sharePage, /shareResponse\.share\.employeeName/)
+  assert.match(sharePage, /shareApp\.status\.sharedByName/)
+})
+
+test('download recording does not create employee shares for receiver users', () => {
+  const repository = readProjectFile('server/repositories/referralRepository.ts')
+  const service = readProjectFile('server/services/referralService.ts')
+
+  assert.doesNotMatch(repository, /export function findServiceUserByEmployeeId/)
+  assert.doesNotMatch(service, /ensureEmployeeShareForVerifiedReceiver/)
+  assert.doesNotMatch(service, /findServiceUserByEmployeeId/)
+  assert.doesNotMatch(service, /ensureReceiverShare/)
+  assert.match(service, /export async function createOrUpdateEmployeeShare/)
+  assert.match(service, /return upsertEmployeeShare\(tx,\s*\{/)
+  assert.ok(
+    service.indexOf('export async function createOrUpdateEmployeeShare') <
+      service.indexOf('return upsertEmployeeShare(tx, {'),
+    'employee_share should be created only through the employee-share API service path'
+  )
+  assert.ok(
+    service.indexOf('export async function recordEmployeeDownload') >
+      service.indexOf('return upsertEmployeeShare(tx, {'),
+    'recordEmployeeDownload should not create employee_share rows for receivers'
+  )
+})
+
 test('download service rejects referrers submitting their own employee ID', () => {
   const service = readProjectFile('server/services/referralService.ts')
   const selfReferralGuard = /share\.employeeId\.trim\(\)\.toUpperCase\(\)\s*===\s*input\.recieverEmpId\.trim\(\)\.toUpperCase\(\)/
@@ -49,9 +94,29 @@ test('download service rejects referrers submitting their own employee ID', () =
   assert.match(service, /Referrer cannot submit their own employee ID\./)
   assert.ok(
     service.indexOf('Referrer cannot submit their own employee ID.') <
-      service.indexOf('return await createEmployeeDownload'),
+      service.indexOf('return await createEmployeeDownload(tx, input)'),
     'self-referral guard must run before creating employee_download'
   )
+})
+
+test('download service keeps receiver employee IDs unique across referral shares', () => {
+  const service = readProjectFile('server/services/referralService.ts')
+  const repository = readProjectFile('server/repositories/referralRepository.ts')
+  const migration = readProjectFile('prisma/migrations/20260607000000_unique_active_receiver_download/migration.sql')
+
+  assert.match(repository, /export function findActiveEmployeeDownloadByReceiver/)
+  assert.match(repository, /where:\s*\{[\s\S]*recieverEmpId,[\s\S]*\.\.\.activeRecord[\s\S]*\}/)
+  assert.match(service, /findActiveEmployeeDownloadByReceiver\(tx, input\.recieverEmpId\)/)
+  assert.match(service, /existingDownload\.employeeShareId !== input\.employeeShareId/)
+  assert.match(service, /This employee ID has already been submitted for another referral\./)
+  assert.ok(
+    service.indexOf('findActiveEmployeeDownloadByReceiver(tx, input.recieverEmpId)') <
+      service.indexOf('return await createEmployeeDownload(tx, input)'),
+    'global receiver duplicate guard must run before creating employee_download'
+  )
+  assert.match(migration, /row_number\(\) OVER \([\s\S]*PARTITION BY "reciever_emp_id"/)
+  assert.match(migration, /CREATE UNIQUE INDEX "employee_download_active_reciever_emp_id_key"/)
+  assert.match(migration, /WHERE "deleted_at" IS NULL/)
 })
 
 test('shareapp referral route exists at the top-level Nuxt route path', () => {
@@ -313,8 +378,7 @@ test('admin dashboard reads real download records and shows downloaded at', () =
   assert.match(adminService, /containsSearch/)
   assert.match(adminService, /verificationStatus\?: 'verified' \| 'unverified'/)
   assert.match(adminService, /function getVerificationStatusWhere/)
-  assert.match(adminService, /verifiedReceiverIdSuffixes/)
-  assert.match(adminService, /unverifiedReceiverIdSuffixes/)
+  assert.match(adminService, /verificationStatus/)
   assert.match(adminService, /parseBangkokDateStart/)
   assert.match(adminService, /countActiveEmployeeDownloads\(prisma, downloadWhere\)/)
   assert.match(adminService, /function getMockAllUsersFromApp/)
@@ -336,9 +400,12 @@ test('admin dashboard reads real download records and shows downloaded at', () =
   assert.match(adminService, /seenReceiverEmployeeIds/)
   assert.match(adminService, /function getMockReferrerScore/)
   assert.match(adminService, /score:\s*getMockReferrerScore/)
-  assert.match(adminService, /function getMockVerificationStatus/)
-  assert.match(adminService, /status:\s*getMockVerificationStatus\(download\.recieverEmpId\)/)
-  assert.match(adminService, /getMockVerificationStatus\(download\.recieverEmpId\)/)
+  assert.match(adminService, /function getDisplayVerificationStatus/)
+  assert.match(adminService, /status:\s*getDisplayVerificationStatus\(download\.verificationStatus\)/)
+  assert.match(adminService, /getDisplayVerificationStatus\(download\.verificationStatus\)/)
+  assert.doesNotMatch(adminService, /getMockVerificationStatus/)
+  assert.doesNotMatch(adminService, /verifiedReceiverIdSuffixes/)
+  assert.doesNotMatch(adminService, /unverifiedReceiverIdSuffixes/)
   assert.match(adminService, /first38Users:\s*topPioneers\.length/)
   assert.match(adminService, /first38Winners/)
   assert.match(adminService, /export async function getAdminDownloadsCsv/)

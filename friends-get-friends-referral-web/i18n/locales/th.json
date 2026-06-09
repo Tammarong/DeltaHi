@@ -2,10 +2,6 @@
   "qrPage": {
     "title": "กิจกรรม Friends Get Friends",
     "subtitle": "สแกน QR code นี้ เพื่อดาวน์โหลด DeltaHi",
-    "banner": {
-      "title": "ดาวน์โหลดแอป DeltaHi",
-      "description": "เข้าร่วมกิจกรรม Friends Get Friends และดำเนินการต่อบนอุปกรณ์มือถือของคุณ"
-    },
     "status": {
       "loading": "กำลังโหลด QR แนะนำ..."
     },
@@ -16,10 +12,6 @@
   "shareApp": {
     "header": "การแนะนำ DeltaHi",
     "title": "กรอกรหัสพนักงานของคุณ",
-    "banner": {
-      "title": "ดำเนินการต่อเพื่อดาวน์โหลด DeltaHi",
-      "description": "ยืนยันรหัสพนักงานของคุณก่อนดำเนินการต่อเพื่อดาวน์โหลดแอป"
-    },
     "language": {
       "change": "เปลี่ยนภาษา",
       "options": "ตัวเลือกภาษา",
@@ -29,7 +21,8 @@
     "status": {
       "checkingReferral": "กำลังตรวจสอบลิงก์แนะนำ...",
       "invalidReferral": "ลิงก์แนะนำไม่ถูกต้องหรือหมดอายุแล้ว",
-      "sharedBy": "แชร์โดยพนักงาน {employeeId}"
+      "sharedBy": "แชร์โดยพนักงาน {employeeId}",
+      "sharedByName": "แชร์โดย {name} ({employeeId})"
     },
     "employeeId": {
       "label": "รหัสพนักงาน",
@@ -46,6 +39,7 @@
     "actions": {
       "saving": "กำลังบันทึก...",
       "continue": "ดำเนินการต่อ",
+      "verifyContinue": "ยืนยันและดำเนินการต่อ",
       "close": "ปิด",
       "closeDownloadPopup": "ปิดหน้าต่างดาวน์โหลด",
       "opening": "กำลังเปิด...",
@@ -53,6 +47,19 @@
       "downloadApp": "ดาวน์โหลดแอป",
       "viewTutorial": "ดูวิธีใช้งาน",
       "backToDownload": "กลับไปดาวน์โหลด"
+    },
+    "steps": {
+      "enterEmployeeId": "กรอกรหัสพนักงาน",
+      "downloadApp": "ดาวน์โหลดแอป"
+    },
+    "verifyCard": {
+      "title": "ยืนยันการแนะนำของคุณ",
+      "description": "กรอกรหัสพนักงานของคุณเพื่อยืนยันการแนะนำก่อนดาวน์โหลดแอป"
+    },
+    "help": {
+      "title": "ต้องการความช่วยเหลือ?",
+      "description": "ติดต่อ {team} เพื่อรับความช่วยเหลือเกี่ยวกับการแนะนำ",
+      "contactSupport": "ติดต่อฝ่ายสนับสนุน"
     },
     "dialog": {
       "ready": "พร้อมดาวน์โหลด",

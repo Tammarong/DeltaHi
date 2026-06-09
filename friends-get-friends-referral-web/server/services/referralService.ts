@@ -3,15 +3,16 @@ import { createError } from 'h3'
 import type { CreateEmployeeDownloadInput, CreateEmployeeShareInput } from '../../shared/schemas/referral'
 import {
   createEmployeeDownload,
-  findActiveEmployeeDownloadByShareAndReceiver,
+  findActiveEmployeeDownloadByReceiver,
   findActiveEmployeeShareById,
   findHrEmployeeByEmpId,
   findServiceUserById,
   updateEmployeeDownloadOs,
+  verifyActiveEmployeeDownloadByReceiver,
   upsertEmployeeShare
 } from '../repositories/referralRepository'
 import { prisma } from '../utils/prisma'
-import { toPublicEmployeeDownload, toPublicEmployeeShare } from '../utils/referral'
+import { getEmployeeDisplayName, toPublicEmployeeDownload, toPublicEmployeeShare } from '../utils/referral'
 
 export async function getEmployeeShare(shareId: string, siteUrl: string) {
   const share = await findActiveEmployeeShareById(prisma, shareId)
@@ -54,7 +55,10 @@ export async function createOrUpdateEmployeeShare(input: CreateEmployeeShareInpu
       })
     }
 
-    return upsertEmployeeShare(tx, input)
+    return upsertEmployeeShare(tx, {
+      ...input,
+      employeeName: getEmployeeDisplayName(employee) || input.employeeId
+    })
   })
 
   return toPublicEmployeeShare(share, siteUrl)
@@ -87,9 +91,16 @@ export async function recordEmployeeDownload(input: CreateEmployeeDownloadInput)
       })
     }
 
-    const existingDownload = await findActiveEmployeeDownloadByShareAndReceiver(tx, input)
+    const existingDownload = await findActiveEmployeeDownloadByReceiver(tx, input.recieverEmpId)
 
     if (existingDownload) {
+      if (existingDownload.employeeShareId !== input.employeeShareId) {
+        throw createError({
+          statusCode: 409,
+          statusMessage: 'This employee ID has already been submitted for another referral.'
+        })
+      }
+
       if (existingDownload.os === 'unknown' && input.os !== 'unknown') {
         return await updateEmployeeDownloadOs(tx, existingDownload.id, input.os)
       }
@@ -103,7 +114,7 @@ export async function recordEmployeeDownload(input: CreateEmployeeDownloadInput)
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
         throw createError({
           statusCode: 409,
-          statusMessage: 'This employee ID has already been submitted for this referral.'
+          statusMessage: 'This employee ID has already been submitted.'
         })
       }
 
@@ -112,4 +123,29 @@ export async function recordEmployeeDownload(input: CreateEmployeeDownloadInput)
   })
 
   return toPublicEmployeeDownload(download)
+}
+
+export async function verifyRegisteredReceiver(employeeId: string) {
+  const normalizedEmployeeId = employeeId.trim().toUpperCase()
+
+  if (!normalizedEmployeeId) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Employee ID is required.'
+    })
+  }
+
+  const result = await verifyActiveEmployeeDownloadByReceiver(prisma, normalizedEmployeeId)
+
+  if (!result.count) {
+    throw createError({
+      statusCode: 404,
+      statusMessage: 'Download record was not found.'
+    })
+  }
+
+  return {
+    employeeId: normalizedEmployeeId,
+    verificationStatus: 'verified' as const
+  }
 }

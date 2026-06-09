@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import appDeltaHiLogoUrl from '~/assets/img/App_DeltaHi_Logo.png'
 import deltaLogoUrl from '~/assets/img/Delta_Logo.png'
 import androidTutorialStep1Url from '~/assets/img/tutorials/Android/An1.png'
 import androidTutorialStep2Url from '~/assets/img/tutorials/Android/An2.png'
@@ -13,6 +14,7 @@ import iosTutorialStep4Url from '~/assets/img/tutorials/iOS/iOS+(4).png'
 import iosTutorialStep5Url from '~/assets/img/tutorials/iOS/iOS+(5).png'
 import iosTutorialStep6Url from '~/assets/img/tutorials/iOS/iOS+(6).png'
 import type { DownloadOs, TutorialOs } from '../../shared/schemas/referral'
+import deltaHiBannerUrl from '~/assets/img/DeltaHi Banner.svg'
 
 type TutorialStep = 'download' | 'choose-os' | 'ios' | 'android'
 type AvailableLocale = 'en' | 'th'
@@ -43,6 +45,7 @@ const lastLookedUpEmployeeId = ref('')
 const downloadReceiverEmpId = ref('')
 const downloadReceiverEmployee = ref<EmployeeLookupResponse['employee']>(null)
 const downloadReceiverLookupStatus = ref<'found' | 'not-found' | 'error'>('not-found')
+const isDownloadStepActive = computed(() => showDownloadDialog.value || hasStartedDownload.value)
 let employeeLookupTimeout: ReturnType<typeof setTimeout> | undefined
 
 type EmployeeLookupResponse = {
@@ -403,7 +406,7 @@ async function submitEmployeeId() {
           <img
             :src="deltaLogoUrl"
             alt="Delta"
-            class="h-auto w-32"
+            class="h-auto w-36"
           >
           <div
             class="relative shrink-0"
@@ -456,16 +459,50 @@ async function submitEmployeeId() {
             </div>
           </div>
         </div>
-        <h1 class="mt-6 text-2xl font-semibold tracking-normal text-slate-950">
+        <h1 class="mt-4 text-2xl font-semibold tracking-normal text-slate-950">
           {{ t('shareApp.title') }}
         </h1>
 
-        <ReferralBanner
-          class="mt-6"
-          variant="verify"
-          :title="t('shareApp.banner.title')"
-          :description="t('shareApp.banner.description')"
-        />
+        <div class="mt-6 flex items-center justify-center gap-2 text-xs font-semibold">
+          <div class="flex items-center gap-2 text-brand-700">
+            <span class="flex h-7 w-7 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white shadow-sm">1</span>
+            <span>{{ t('shareApp.steps.enterEmployeeId') }}</span>
+          </div>
+          <div
+            class="h-px w-8 transition-colors"
+            :class="isDownloadStepActive ? 'bg-brand-600' : 'bg-slate-300'"
+          />
+          <div
+            class="flex items-center gap-2 transition-colors"
+            :class="isDownloadStepActive ? 'text-brand-700' : 'text-slate-500'"
+          >
+            <span
+              class="flex h-7 w-7 items-center justify-center rounded-full border text-xs font-bold transition-colors"
+              :class="isDownloadStepActive
+                ? 'border-brand-600 bg-brand-600 text-white shadow-sm'
+                : 'border-slate-300 bg-slate-100 text-slate-600'"
+            >2</span>
+            <span>{{ t('shareApp.steps.downloadApp') }}</span>
+          </div>
+        </div>
+
+        <section class="mt-6 rounded-lg border border-sky-200 bg-sky-50/40 p-3">
+          <div class="flex items-center gap-3">
+            <div class="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm">
+              <img
+                :src="appDeltaHiLogoUrl"
+                alt="DeltaHi app"
+                class="h-12 w-12 rounded-lg object-contain"
+              >
+            </div>
+            <div class="min-w-0">
+              <p class="text-base font-semibold text-slate-950">{{ t('shareApp.verifyCard.title') }}</p>
+              <p class="mt-1 text-sm leading-6 text-slate-700">
+                {{ t('shareApp.verifyCard.description') }}
+              </p>
+            </div>
+          </div>
+        </section>
 
         <div v-if="pending" class="mt-6 rounded-md bg-slate-100 p-4 text-sm text-slate-700">
           {{ t('shareApp.status.checkingReferral') }}
@@ -477,7 +514,14 @@ async function submitEmployeeId() {
 
         <form v-else class="mt-6 space-y-4" @submit.prevent="submitEmployeeId">
           <div v-if="shareResponse?.share?.employeeId" class="rounded-md bg-slate-50 p-3 text-sm text-slate-600">
-            {{ t('shareApp.status.sharedBy', { employeeId: shareResponse.share.employeeId }) }}
+            {{
+              shareResponse.share.employeeName
+                ? t('shareApp.status.sharedByName', {
+                    employeeId: shareResponse.share.employeeId,
+                    name: shareResponse.share.employeeName
+                  })
+                : t('shareApp.status.sharedBy', { employeeId: shareResponse.share.employeeId })
+            }}
           </div>
 
           <label class="block">
@@ -487,7 +531,7 @@ async function submitEmployeeId() {
               type="text"
               inputmode="text"
               autocomplete="off"
-              class="mt-2 w-full rounded-md border border-slate-300 px-3 py-3 text-base outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
+              class="mt-2 w-full rounded-md border border-slate-300 px-3 py-3 text-base text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
               :placeholder="t('shareApp.employeeId.placeholder')"
             >
           </label>
@@ -495,8 +539,13 @@ async function submitEmployeeId() {
           <div v-if="receiverLookupStatus === 'checking'" class="rounded-md bg-slate-50 p-3 text-sm text-slate-600">
             {{ t('shareApp.employeeLookup.checking') }}
           </div>
-          <div v-else-if="receiverLookupStatus === 'found' && receiverEmployee" class="rounded-md bg-emerald-50 p-3 text-sm text-emerald-800">
-            {{ t('shareApp.employeeLookup.verified', { name: receiverEmployee.displayName }) }}
+          <div v-else-if="receiverLookupStatus === 'found' && receiverEmployee" class="flex items-center gap-3 rounded-md bg-emerald-50 p-3 text-sm font-medium text-emerald-800">
+            <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m6 12 4 4 8-8" />
+              </svg>
+            </span>
+            <span>{{ t('shareApp.employeeLookup.verified', { name: receiverEmployee.displayName }) }}</span>
           </div>
           <div v-else-if="receiverLookupStatus === 'not-found'" class="rounded-md bg-amber-50 p-3 text-sm text-amber-800">
             {{ t('shareApp.employeeLookup.notFoundContinue', { employeeId: normalizedEmployeeId }) }}
@@ -511,35 +560,45 @@ async function submitEmployeeId() {
 
           <button
             type="submit"
-            class="w-full rounded-md bg-brand-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+            class="w-full rounded-md bg-brand-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-300"
             :disabled="isSubmitting"
           >
-            {{ isSubmitting ? t('shareApp.actions.saving') : t('shareApp.actions.continue') }}
+            {{ isSubmitting ? t('shareApp.actions.saving') : t('shareApp.actions.verifyContinue') }}
           </button>
         </form>
 
-        <footer class="mt-6 border-t border-slate-200 pt-5 text-sm">
-          <p class="font-semibold text-slate-950">{{ t('shareApp.footer.title') }}</p>
-          <p class="mt-1 text-slate-600">{{ t('shareApp.footer.description') }}</p>
-
-          <div class="mt-4 space-y-3">
+        <div class="mt-6 border-t border-slate-200 pt-5 text-sm">
+          <div class="space-y-3">
             <div
               v-for="team in contactTeam"
               :key="team.name"
-              class="rounded-md border border-slate-200 bg-slate-50 p-3"
+              class="rounded-md border border-slate-200 bg-white p-3"
             >
-              <p class="font-medium text-slate-900">
-                {{ team.name }} - {{ team.nickname }}
-              </p>
+              <div class="flex min-w-0 items-center gap-3">
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-700">
+                  <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M3 12a9 9 0 0 1 18 0" />
+                    <path d="M3 13v3a2 2 0 0 0 2 2h1v-7H5a2 2 0 0 0-2 2Z" />
+                    <path d="M21 13v3a2 2 0 0 1-2 2h-1v-7h1a2 2 0 0 1 2 2Z" />
+                    <path d="M13 20h2a3 3 0 0 0 3-3" />
+                  </svg>
+                </div>
+                <div class="min-w-0">
+                  <p class="font-semibold text-slate-950">{{ t('shareApp.help.title') }}</p>
+                  <p class="mt-1 leading-6 text-slate-700">
+                    {{ t('shareApp.help.description', { team: `${team.name} - ${team.nickname}` }) }}
+                  </p>
+                </div>
+              </div>
               <a
-                class="mt-1 inline-block font-medium text-brand-700 underline-offset-4 transition hover:text-brand-800 hover:underline"
+                class="mt-3 inline-flex h-9 items-center justify-center rounded-md border border-brand-600 bg-brand-600 px-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
                 :href="`https://oa.deltaww.com.cn/WebAPI/openApp/openAppNew.html?ModuleID=41`"
               >
-                {{ t('shareApp.footer.clickHere') }}
+                {{ t('shareApp.help.contactSupport') }}
               </a>
             </div>
           </div>
-        </footer>
+        </div>
       </div>
     </section>
 

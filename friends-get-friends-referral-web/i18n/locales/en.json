@@ -2,10 +2,6 @@
   "qrPage": {
     "title": "Friends Get Friends Event",
     "subtitle": "Scan this QR code to download DeltaHi",
-    "banner": {
-      "title": "Download DeltaHi App",
-      "description": "Join the Friends Get Friends event and continue on your mobile device."
-    },
     "status": {
       "loading": "Loading referral QR..."
     },
@@ -16,10 +12,6 @@
   "shareApp": {
     "header": "DeltaHi referral",
     "title": "Enter your employee ID",
-    "banner": {
-      "title": "Continue to DeltaHi Download",
-      "description": "Verify your employee ID before continuing to the app download."
-    },
     "language": {
       "change": "Change language",
       "options": "Language options",
@@ -29,7 +21,8 @@
     "status": {
       "checkingReferral": "Checking referral link...",
       "invalidReferral": "Referral link is invalid or expired.",
-      "sharedBy": "Shared by employee {employeeId}"
+      "sharedBy": "Shared by employee {employeeId}",
+      "sharedByName": "Shared by {name} ({employeeId})"
     },
     "employeeId": {
       "label": "Employee ID",
@@ -46,6 +39,7 @@
     "actions": {
       "saving": "Saving...",
       "continue": "Continue",
+      "verifyContinue": "Verify & Continue",
       "close": "Close",
       "closeDownloadPopup": "Close download popup",
       "opening": "Opening...",
@@ -53,6 +47,19 @@
       "downloadApp": "Download App",
       "viewTutorial": "View Tutorial",
       "backToDownload": "Back to Download"
+    },
+    "steps": {
+      "enterEmployeeId": "Enter Employee ID",
+      "downloadApp": "Download App"
+    },
+    "verifyCard": {
+      "title": "Verify your referral",
+      "description": "Enter your employee ID to verify your referral before downloading the app."
+    },
+    "help": {
+      "title": "Need help?",
+      "description": "Contact {team} for referral support.",
+      "contactSupport": "Contact Support"
     },
     "dialog": {
       "ready": "Ready to download",

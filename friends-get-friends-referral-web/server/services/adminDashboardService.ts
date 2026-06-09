@@ -44,14 +44,8 @@ function getMockAllUsersFromApp() {
   return 12840
 }
 
-const verifiedReceiverIdSuffixes = ['0', '2', '4', '6', '8']
-const unverifiedReceiverIdSuffixes = ['1', '3', '5', '7', '9']
-
-function getMockVerificationStatus(employeeId: string) {
-  // Placeholder until the real verification status API is connected.
-  const lastDigit = employeeId.match(/\d$/)?.[0]
-
-  return lastDigit && verifiedReceiverIdSuffixes.includes(lastDigit) ? 'Verified' : 'Unverified'
+function getDisplayVerificationStatus(status: string) {
+  return status === 'verified' ? 'Verified' : 'Unverified'
 }
 
 function escapeCsvValue(value: string | number) {
@@ -112,16 +106,8 @@ function getVerificationStatusWhere(
     return undefined
   }
 
-  const suffixes = verificationStatus === 'verified'
-    ? verifiedReceiverIdSuffixes
-    : unverifiedReceiverIdSuffixes
-
   return {
-    OR: suffixes.map((suffix) => ({
-      recieverEmpId: {
-        endsWith: suffix
-      }
-    }))
+    verificationStatus
   }
 }
 
@@ -267,7 +253,7 @@ export async function getAdminDashboard(options: AdminDashboardOptions = {}) {
       referrerEmpId: download.share.employeeId,
       os: download.os,
       downloadedAt: download.createdAt.toISOString(),
-      status: getMockVerificationStatus(download.recieverEmpId)
+      status: getDisplayVerificationStatus(download.verificationStatus)
     })),
     pagination: {
       page,
@@ -301,7 +287,7 @@ export async function getAdminDownloadsCsv(options: AdminDashboardOptions = {}) 
     download.share.employeeId,
     download.os,
     download.createdAt.toISOString(),
-    getMockVerificationStatus(download.recieverEmpId)
+    getDisplayVerificationStatus(download.verificationStatus)
   ]))
 
   return `\uFEFF${[toCsvRow(headers), ...rows].join('\n')}\n`
