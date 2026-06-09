@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: deltahi-referral-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: friends_get_friends
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - deltahi_referral_postgres_data:/var/lib/postgresql/data
+      - ./prisma/local-reference-schema.sql:/docker-entrypoint-initdb.d/001-local-reference-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d friends_get_friends"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  deltahi_referral_postgres_data:

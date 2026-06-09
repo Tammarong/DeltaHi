@@ -1,0 +1,100 @@
+{
+  "qrPage": {
+    "title": "Friends Get Friends Event",
+    "subtitle": "Scan this QR code to download DeltaHi",
+    "status": {
+      "loading": "Loading referral QR..."
+    },
+    "errors": {
+      "unavailable": "Referral QR is unavailable."
+    }
+  },
+  "shareApp": {
+    "header": "DeltaHi referral",
+    "title": "Enter your employee ID",
+    "language": {
+      "change": "Change language",
+      "options": "Language options",
+      "en": "English",
+      "th": "ไทย"
+    },
+    "status": {
+      "checkingReferral": "Checking referral link...",
+      "invalidReferral": "Referral link is invalid or expired.",
+      "sharedBy": "Shared by employee {employeeId}",
+      "sharedByName": "Shared by {name} ({employeeId})"
+    },
+    "employeeId": {
+      "label": "Employee ID",
+      "placeholder": "Example: EMP006"
+    },
+    "employeeLookup": {
+      "checking": "Checking employee ID...",
+      "verified": "Employee verified: {name}",
+      "notFoundContinue": "Employee ID {employeeId} was not found. You can still continue to download.",
+      "verifyErrorContinue": "Unable to verify this employee ID right now. You can still continue to download.",
+      "verifyErrorDownload": "Unable to verify this employee ID right now. You can still download the app.",
+      "notFoundDownload": "Employee ID {employeeId} was not found. You can still download the app, but this referral will not be recorded."
+    },
+    "actions": {
+      "saving": "Saving...",
+      "continue": "Continue",
+      "verifyContinue": "Verify & Continue",
+      "close": "Close",
+      "closeDownloadPopup": "Close download popup",
+      "opening": "Opening...",
+      "checkingDevice": "Checking device...",
+      "downloadApp": "Download App",
+      "viewTutorial": "View Tutorial",
+      "backToDownload": "Back to Download"
+    },
+    "steps": {
+      "enterEmployeeId": "Enter Employee ID",
+      "downloadApp": "Download App"
+    },
+    "verifyCard": {
+      "title": "Verify your referral",
+      "description": "Enter your employee ID to verify your referral before downloading the app."
+    },
+    "help": {
+      "title": "Need help?",
+      "description": "Contact {team} for referral support.",
+      "contactSupport": "Contact Support"
+    },
+    "dialog": {
+      "ready": "Ready to download",
+      "title": "Download the DeltaHi app",
+      "instructions": "Tap Download App to save your referral and install the app.",
+      "cannotDownload": "Can't download the app?"
+    },
+    "tutorial": {
+      "label": "Tutorial",
+      "choosePhone": "Choose your OS",
+      "iosLabel": "iOS tutorial",
+      "androidLabel": "Android tutorial",
+      "installIos": "Install on iPhone",
+      "installAndroid": "Install on Android",
+      "iosImageAlt": "iOS tutorial step {step}",
+      "androidImageAlt": "Android tutorial step {step}",
+      "iosStep1": "1. Tap Download App to open the App Store.",
+      "iosStep2": "2. Tap Get, then confirm with Face ID, Touch ID, or passcode.",
+      "iosStep3": "3. Open DeltaHi and complete your first login.",
+      "androidStep1": "1. Tap Download App to open Google Play.",
+      "androidStep2": "2. Tap Install and wait for the download to finish.",
+      "androidStep3": "3. Open DeltaHi and complete your first login."
+    },
+    "errors": {
+      "validEmployeeId": "Enter your employee ID.",
+      "enterEmployeeIdFirst": "Enter your employee ID first.",
+      "validReferralAndEmployee": "Open a valid referral link and enter your employee ID first.",
+      "saveReferral": "Unable to save your referral. Please try again.",
+      "detectOs": "Unable to detect your device. Please choose your phone.",
+      "openDownload": "Unable to open the download link. Please try again."
+    },
+    "footer": {
+      "title": "Contact us",
+      "description": "For referral support, please contact:",
+      "clickHere": "Click here"
+    }
+  }
+}
