@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { DownloadOs, TutorialOs } from '../shared/schemas/referral'
+import type { DownloadOs, TutorialOs } from '../../shared/schemas/referral'
 
 type TutorialStep = 'download' | 'choose-os' | 'ios' | 'android'
 

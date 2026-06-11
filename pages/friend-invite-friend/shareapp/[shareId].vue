@@ -13,7 +13,7 @@ import iosTutorialStep3Url from '~/assets/img/tutorials/iOS/iOS+(3).png'
 import iosTutorialStep4Url from '~/assets/img/tutorials/iOS/iOS+(4).png'
 import iosTutorialStep5Url from '~/assets/img/tutorials/iOS/iOS+(5).png'
 import iosTutorialStep6Url from '~/assets/img/tutorials/iOS/iOS+(6).png'
-import type { DownloadOs, TutorialOs } from '../../shared/schemas/referral'
+import type { DownloadOs, TutorialOs } from '../../../shared/schemas/referral'
 import deltaHiBannerUrl from '~/assets/img/DeltaHi Banner.svg'
 
 type TutorialStep = 'download' | 'choose-os' | 'ios' | 'android'
