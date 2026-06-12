@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import QRCode from "qrcode";
+import appDeltaHiLogoUrl from "~/assets/img/App_DeltaHi_Logo.png";
 import deltaLogoUrl from "~/assets/img/Delta_Logo.png";
 import deltaHiBannerUrl from "~/assets/img/DeltaHi Banner.svg";
 
@@ -17,21 +19,6 @@ type GetEmployeeShareResponse = {
   share: EmployeeShare;
 };
 
-type CheckUserResponse = {
-  status: number;
-  message: string;
-  data: null | {
-    id: string;
-    employee_id: string;
-    point_balance?: number | string | null;
-    pointBalance?: number | string | null;
-    employee_info?: {
-      full_name?: string | null;
-      full_name_th?: string | null;
-    } | null;
-  };
-};
-
 type AvailableLocale = "en" | "th";
 type LocalizedMessage = {
   key: string;
@@ -45,14 +32,15 @@ const contactTeam = [
   },
 ];
 
-const router = useRouter();
+const route = useRoute();
 const { locale, setLocale, t } = useI18n();
 const formError = ref<LocalizedMessage | string | null>(null);
-const isCreatingShare = ref(false);
+const isLoadingShare = ref(false);
+const shareResult = ref<EmployeeShare | null>(null);
+const qrCodeDataUrl = ref("");
 const languageMenuOpen = ref(false);
-const referrerEmployeeId = ref("");
-const normalizedReferrerEmployeeId = computed(() =>
-  referrerEmployeeId.value.trim().toUpperCase(),
+const employeeShareIdFromQuery = computed(() =>
+  String(route.query.employeeShareId || "").trim(),
 );
 
 const languageOptions: Array<{
@@ -140,65 +128,56 @@ async function selectLanguage(selectedLocale: AvailableLocale) {
   closeLanguageMenu();
 }
 
-async function submitReferrerEmployeeId() {
-  if (isCreatingShare.value) {
-    return;
-  }
+async function renderShareQr(share: EmployeeShare) {
+  shareResult.value = share;
+  qrCodeDataUrl.value = await QRCode.toDataURL(share.shareUrl, {
+    errorCorrectionLevel: "M",
+    margin: 1,
+    width: 256,
+  });
+}
 
+function clearShareQr() {
+  shareResult.value = null;
+  qrCodeDataUrl.value = "";
+}
+
+async function runShareLoader(loader: () => Promise<void>) {
   formError.value = null;
-
-  if (!normalizedReferrerEmployeeId.value) {
-    formError.value = { key: "qrPage.errors.enterEmployeeId" };
-    return;
-  }
-
-  isCreatingShare.value = true;
+  isLoadingShare.value = true;
 
   try {
-    const response = await $fetch<CheckUserResponse>(
-      "/api/friend-invite-friend/check-user",
-      {
-        query: {
-          employee_id: normalizedReferrerEmployeeId.value,
-        },
-      },
-    );
-
-    if (!response.data?.id || !response.data.employee_id) {
-      throw new Error("User was not found.");
-    }
-
-    const { share } = await $fetch<GetEmployeeShareResponse>(
-      "/api/employee-shares",
-      {
-        method: "POST",
-        body: {
-          userId: response.data.id,
-          employeeId: response.data.employee_id,
-          pointBalance:
-            response.data.point_balance ?? response.data.pointBalance ?? null,
-        },
-      },
-    );
-
-    await router.push({
-      path: "/friend-invite-friend/qr-code",
-      query: {
-        employeeShareId: share.id,
-      },
-    });
+    await loader();
   } catch (error) {
     formError.value = getStatusMessage(error);
+    clearShareQr();
   } finally {
-    isCreatingShare.value = false;
+    isLoadingShare.value = false;
   }
 }
 
-watch(referrerEmployeeId, () => {
-  if (formError.value) {
-    formError.value = null;
-  }
-});
+async function loadShareQrById(employeeShareId: string) {
+  await runShareLoader(async () => {
+    const { share } = await $fetch<GetEmployeeShareResponse>(
+      `/api/shares/${encodeURIComponent(employeeShareId)}`,
+    );
+
+    await renderShareQr(share);
+  });
+}
+
+watch(
+  employeeShareIdFromQuery,
+  (employeeShareId) => {
+    if (employeeShareId) {
+      void loadShareQrById(employeeShareId);
+    } else {
+      formError.value = { key: "qrPage.errors.enterEmployeeId" };
+      clearShareQr();
+    }
+  },
+  { immediate: true },
+);
 </script>
 
 <template>
@@ -266,48 +245,48 @@ watch(referrerEmployeeId, () => {
         </div>
 
         <h1 class="mt-5 text-2xl font-semibold tracking-normal text-slate-950">
-          {{ t("qrPage.referrer.title") }}
+          {{ t("qrPage.title") }}
         </h1>
 
         <p class="mt-1 text-sm leading-6 text-slate-600">
-          {{ t("qrPage.referrer.subtitle") }}
+          {{ t("qrPage.subtitle") }}
         </p>
 
-        <form class="mt-6 space-y-4" @submit.prevent="submitReferrerEmployeeId">
-          <label class="block">
-            <span class="text-sm font-medium text-slate-800">
-              {{ t("shareApp.employeeId.label") }}
-            </span>
-            <input
-              v-model="referrerEmployeeId"
-              type="text"
-              inputmode="text"
-              autocomplete="off"
-              :disabled="isCreatingShare"
-              class="mt-2 w-full rounded-md border border-slate-300 px-3 py-3 text-base text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
-              :placeholder="t('shareApp.employeeId.placeholder')"
-            />
-          </label>
-
-          <button
-            type="submit"
-            :disabled="isCreatingShare"
-            class="w-full rounded-md bg-brand-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-400"
-          >
-            {{
-              isCreatingShare
-                ? t("qrPage.status.loading")
-                : t("qrPage.referrer.action")
-            }}
-          </button>
-        </form>
-
-        <p
-          v-if="formErrorText"
-          class="mt-6 rounded-md bg-red-50 p-3 text-sm text-red-700"
+        <div
+          v-if="isLoadingShare"
+          class="mt-6 rounded-md bg-slate-100 p-4 text-sm text-slate-700"
         >
-          {{ formErrorText }}
-        </p>
+          {{ t("qrPage.status.loading") }}
+        </div>
+
+        <div v-if="formErrorText" class="mt-6 space-y-3">
+          <p class="rounded-md bg-red-50 p-3 text-sm text-red-700">
+            {{ formErrorText }}
+          </p>
+          <NuxtLink
+            to="/friend-invite-friend/user_Id"
+            class="inline-flex h-10 w-full items-center justify-center rounded-md border border-brand-600 bg-brand-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
+          >
+            {{ t("shareApp.steps.enterEmployeeId") }}
+          </NuxtLink>
+        </div>
+
+        <div v-if="shareResult" class="mt-6 border-t border-slate-200 pt-6">
+          <div class="rounded-md bg-slate-50 p-4 text-center">
+            <div v-if="qrCodeDataUrl" class="relative mx-auto h-64 w-64">
+              <img
+                :src="qrCodeDataUrl"
+                alt="Referral QR code"
+                class="h-full w-full"
+              />
+              <img
+                :src="appDeltaHiLogoUrl"
+                alt="DeltaHi app"
+                class="absolute left-1/2 top-1/2 h-14 w-14 -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-1 shadow-sm"
+              />
+            </div>
+          </div>
+        </div>
 
         <footer class="mt-6 border-t border-slate-200 pt-5 text-sm">
           <div class="space-y-3">

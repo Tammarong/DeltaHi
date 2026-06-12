@@ -1,26 +1,52 @@
-# Check User Already Login
+# Friend Invite Friend Check User API
 
-คำอธิบายสั้น ๆ ของ API นี้
+This endpoint verifies the referrer employee ID before the app creates a QR code.
+
+It is used only after the referrer manually submits their employee ID on the first input page.
+
+## Current Workflow
+
+1. Referrer opens `/friend-invite-friend/user_Id`.
+2. Referrer manually enters their employee ID.
+3. After the referrer presses Generate QR Code, the first page calls `GET /api/friend-invite-friend/check-user?employee_id=[employee_id]`.
+4. If the employee ID is valid, the API returns the DeltaHi user id and employee data.
+5. The first page sends that user id to `POST /api/employee-shares`.
+6. `POST /api/employee-shares` creates or reuses the `employee_share` row.
+7. The first page navigates to `/friend-invite-friend/qr-code?employeeShareId=[employee_share.id]`.
+8. The QR page loads that share with `GET /api/shares/[employee_share.id]`.
+9. The QR page generates a QR code from the returned share URL.
+10. The QR points friends to `/friend-invite-friend/shareapp/[employee_share.id]`.
 
 ## Endpoint
 
-`POST /api/friend-invite-friend/check-user`
+```http
+GET /api/friend-invite-friend/check-user
+```
 
 ## Query Parameters
 
-| Parameter   | Type   | Required | Default    | Description             |
-| ----------  | ------ | -------- | ---------- | ----------------------- |
-| employee_id | string | `true`   |            | Employee ID             |
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `employee_id` | string | yes | Referrer's employee ID |
 
-### Example Request
+`employeeId` is also accepted by the local implementation as a fallback query name, but `employee_id` is the expected contract.
+
+## Example Request
 
 ```http
 GET /api/friend-invite-friend/check-user?employee_id=86676767
 ```
 
-## Response
+## Success Response
 
-### Success (200 OK)
+The first input page needs these fields:
+
+| Field | Usage |
+| --- | --- |
+| `data.id` | Sent as `userId` to `POST /api/employee-shares` |
+| `data.employee_id` | Sent as `employeeId` to `POST /api/employee-shares` |
+| `data.point_balance` | Sent as `pointBalance` to `POST /api/employee-shares` |
+| `data.employee_info.full_name` | Available for display/debugging, but QR creation does not require it |
 
 ```json
 {
@@ -28,110 +54,86 @@ GET /api/friend-invite-friend/check-user?employee_id=86676767
   "message": "Success",
   "data": {
     "id": "F8BE1C16-4E36-406D-9F56-54DD32F007E0",
-    "created_at": "2025-09-30T09:05:10.450+00:00",
-    "updated_at": "2026-06-10T09:28:28.171+00:00",
-    "deleted_at": null,
-    "last_active": "2026-06-10T09:28:28.169+00:00",
     "employee_id": "86676767",
-    "location_id": "E22C94B1-9AF7-46FC-BC28-83C9F7D47BD3",
-    "site_id": "296FA937-7DFD-47C3-A811-629B4CC31038",
-    "email": null,
+    "point_balance": 0,
     "username": "86676767",
-    "avatar": {
-      "id": "8E30EB3A-8334-492C-9549-B624C5AD383E",
-      "employee_id": "86676767",
-      "avatar": "/jh31dna3vjiyob6gla9i8inf.jpg",
-      "original_avatar": null,
-      "created_at": "2025-09-30T09:50:59.373+00:00",
-      "updated_at": "2026-02-16T06:54:49.363+00:00",
-      "deleted_at": null,
-      "created_by_id": "F8BE1C16-4E36-406D-9F56-54DD32F007E0",
-      "updated_by_id": "F8BE1C16-4E36-406D-9F56-54DD32F007E0",
-      "deleted_by_id": null
-    },
-    "avatar_frames": [
-      {
-        "id": "B37152F1-18CB-46B0-9378-CE66FDD13333",
-        "created_at": "2026-02-16T03:50:19.396+00:00",
-        "updated_at": "2026-02-16T06:43:40.290+00:00",
-        "deleted_at": null,
-        "created_by_id": "2D32118B-5E2B-4DB6-9944-1F3FA14B42DC",
-        "updated_by_id": "2D32118B-5E2B-4DB6-9944-1F3FA14B42DC",
-        "deleted_by_id": null,
-        "name": {
-          "en": "🍊 Lucky Lunar New Year 2026 🧧",
-          "th": "🍊 สุขสันต์วันตรุษจีน 2026 🧧"
-        },
-        "image": {
-          "path": "http://localhost:9000/delta-store/axra2mdos8h4emhkdsnndcpx.png",
-          "origin": "/axra2mdos8h4emhkdsnndcpx.png",
-          "filename": "Chinese NY-Frame.png"
-        },
-        "everyone": true,
-        "start_date": "2026-02-19",
-        "end_date": null
-      }
-    ],
-    "location": {
-      "id": "E22C94B1-9AF7-46FC-BC28-83C9F7D47BD3",
-      "name": {
-        "en": "Bangpoo",
-        "th": "บางปู"
-      },
-      "code": "05",
-      "sort_order": -1,
-      "created_at": "2025-05-14T10:51:07.036+00:00",
-      "updated_at": "2025-05-14T10:51:07.036+00:00",
-      "deleted_at": null
-    },
-    "site": {
-      "id": "296FA937-7DFD-47C3-A811-629B4CC31038",
-      "location_id": "E22C94B1-9AF7-46FC-BC28-83C9F7D47BD3",
-      "name": {
-        "th": "BP3 (DET05)",
-        "en": "BP3 (DET05)"
-      },
-      "code": "BP3",
-      "created_at": "2025-06-16T03:48:13.580+00:00",
-      "updated_at": "2026-02-27T08:26:30.393+00:00",
-      "deleted_at": null
-    },
-    "teams": [],
     "employee_info": {
-      "company": "TH00",
       "emp_id": "86676767",
       "name": "Six",
-      "name_th": "หก",
       "surname": "Seven",
-      "surname_th": "เจ็ด",
-      "factory_code": "DET05",
-      "factory_name": "BP3",
-      "location_code": "05",
-      "location": "Bangpoo",
-      "job_grade": "A7 ",
-      "emp_type": "Monthly",
-      "employment": "Hired",
-      "begin_date": null,
-      "seniority": 1.88,
-      "birthday": null,
-      "age": 26,
-      "email": "six.seven@deltaww.com",
-      "ad_account": "six.seven",
-      "gender": "F",
-      "job_code": "HR3H001",
-      "job_name": "HRIS Officer",
-      "nationality": "THAI",
-      "resign_date": "",
       "full_name": "Six Seven",
-      "full_name_th": "หก เจ็ด",
-      "meta": {
-        "dept_code": "S6614A001000",
-        "dept_name": "SEA HRIS & Digital Transformation",
-        "cost_code": "S6614A00",
-        "cost_name": "SEA-HR",
-        "MobileNo": ""
-      }
+      "full_name_th": "หก เจ็ด"
     },
     "type_account": "user"
   }
 }
+```
+
+## Error Responses
+
+### Missing or Invalid Employee ID
+
+```http
+HTTP/1.1 400 Bad Request
+```
+
+```json
+{
+  "statusCode": 400,
+  "statusMessage": "Employee ID is required."
+}
+```
+
+### User Not Found
+
+```http
+HTTP/1.1 404 Not Found
+```
+
+```json
+{
+  "statusCode": 404,
+  "statusMessage": "User was not found."
+}
+```
+
+## QR Page Usage
+
+After `check-user` succeeds, the first input page calls:
+
+```http
+POST /api/employee-shares
+```
+
+Request body:
+
+```json
+{
+  "userId": "F8BE1C16-4E36-406D-9F56-54DD32F007E0",
+  "employeeId": "86676767",
+  "pointBalance": 0
+}
+```
+
+Expected response:
+
+```json
+{
+  "share": {
+    "id": "22222222-2222-4222-8222-222222222222",
+    "userId": "F8BE1C16-4E36-406D-9F56-54DD32F007E0",
+    "employeeId": "86676767",
+    "employeeName": "Six Seven",
+    "pointBalance": 0,
+    "shareUrl": "https://deltahi.vercel.io/friend-invite-friend/shareapp/22222222-2222-4222-8222-222222222222"
+  }
+}
+```
+
+Then the first input page redirects to:
+
+```http
+GET /friend-invite-friend/qr-code?employeeShareId=22222222-2222-4222-8222-222222222222
+```
+
+The QR page loads the share and generates the QR code from `share.shareUrl`.
