@@ -6,14 +6,17 @@ Lightweight DeltaHi referral web flow.
 
 Main flow:
 
-1. Referrer opens `/friend-invite-friend/user_Id?employee_id=<EMPLOYEE_ID>`.
-2. The page checks the logged-in user and renders a QR for `/friend-invite-friend/shareapp/[employee_share.id]`.
-3. New user opens `/friend-invite-friend/shareapp/[employee_share.id]`.
-4. New user enters employee ID.
-5. New user lands on `/download`.
-6. If the employee ID exists in HR data, the download page shows the employee name.
-7. System saves an `employee_download` record when a verified employee clicks Download App.
-8. If the employee ID is not found, the new user can still download the app, but no `employee_download` row is saved.
+1. Referrer opens `/friend-invite-friend/user_Id`.
+2. Referrer enters their employee ID.
+3. The page checks the employee ID with `/api/friend-invite-friend/check-user`.
+4. The page creates or reuses the employee share, then sends the referrer to `/friend-invite-friend/qr-code?employeeShareId=[employee_share.id]`.
+5. The QR page renders a QR for `/friend-invite-friend/shareapp/[employee_share.id]`.
+6. New user opens `/friend-invite-friend/shareapp/[employee_share.id]`.
+7. New user enters employee ID.
+8. New user lands on `/download`.
+9. If the employee ID exists in HR data, the download page shows the employee name.
+10. System saves an `employee_download` record when a verified employee clicks Download App.
+11. If the employee ID is not found, the new user can still download the app, but no `employee_download` row is saved.
 
 Optional help flow:
 

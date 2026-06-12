@@ -5,7 +5,13 @@
     "status": {
       "loading": "Loading referral QR..."
     },
+    "referrer": {
+      "title": "Create your referral QR",
+      "subtitle": "Enter your employee ID to generate a QR code for your friends.",
+      "action": "Generate QR Code"
+    },
     "errors": {
+      "enterEmployeeId": "Enter your employee ID to generate your QR code.",
       "unavailable": "Referral QR is unavailable."
     }
   },

@@ -5,7 +5,13 @@
     "status": {
       "loading": "กำลังโหลด QR แนะนำ..."
     },
+    "referrer": {
+      "title": "สร้าง QR แนะนำของคุณ",
+      "subtitle": "กรอกรหัสพนักงานของคุณเพื่อสร้าง QR code สำหรับส่งต่อให้เพื่อน",
+      "action": "สร้าง QR Code"
+    },
     "errors": {
+      "enterEmployeeId": "กรุณากรอกรหัสพนักงานเพื่อสร้าง QR code ของคุณ",
       "unavailable": "ไม่สามารถใช้งาน QR แนะนำได้"
     }
   },
