@@ -17,9 +17,22 @@ export const userIdSchema = z
   .trim()
   .uuid('User ID is invalid.')
 
+export const pointBalanceSchema = z.preprocess((value) => {
+  if (value === undefined || value === null || value === '') {
+    return null
+  }
+
+  if (typeof value === 'string') {
+    return Number(value)
+  }
+
+  return value
+}, z.number().int('Point balance must be a whole number.').min(0, 'Point balance cannot be negative.').nullable())
+
 export const createEmployeeShareSchema = z.object({
   userId: userIdSchema,
-  employeeId: employeeIdSchema
+  employeeId: employeeIdSchema,
+  pointBalance: pointBalanceSchema
 })
 
 export const downloadOsSchema = z.enum(['ios', 'android', 'unknown'])

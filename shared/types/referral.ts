@@ -3,6 +3,7 @@ export type PublicEmployeeShare = {
   userId: string
   employeeId: string
   employeeName: string
+  pointBalance: number | null
   shareUrl: string
   createdAt: string
   updatedAt: string

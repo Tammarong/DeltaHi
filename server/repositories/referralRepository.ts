@@ -45,6 +45,7 @@ export function upsertEmployeeShare(
     userId: string
     employeeId: string
     employeeName: string
+    pointBalance: number | null
   }
 ) {
   return db.employeeShare.upsert({
@@ -54,11 +55,13 @@ export function upsertEmployeeShare(
     create: {
       userId: data.userId,
       employeeId: data.employeeId,
-      employeeName: data.employeeName
+      employeeName: data.employeeName,
+      pointBalance: data.pointBalance
     },
     update: {
       employeeId: data.employeeId,
       employeeName: data.employeeName,
+      pointBalance: data.pointBalance,
       deletedAt: null
     },
     include: {

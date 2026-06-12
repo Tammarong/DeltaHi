@@ -57,7 +57,8 @@ export async function createOrUpdateEmployeeShare(input: CreateEmployeeShareInpu
 
     return upsertEmployeeShare(tx, {
       ...input,
-      employeeName: getEmployeeDisplayName(employee) || input.employeeId
+      employeeName: getEmployeeDisplayName(employee) || input.employeeId,
+      pointBalance: input.pointBalance
     })
   })
 

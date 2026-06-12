@@ -6,14 +6,14 @@ Lightweight DeltaHi referral web flow.
 
 Main flow:
 
-1. Referrer shares QR link. `/?employeeShareId=<EMPLOYEE_SHARE_ID>
-` .
-2. New user opens `/shareapp/[employee_share.id]`.
-3. New user enters employee ID.
-4. New user lands on `/download`.
-5. If the employee ID exists in HR data, the download page shows the employee name.
-6. System saves an `employee_download` record when a verified employee clicks Download App.
-7. If the employee ID is not found, the new user can still download the app, but no `employee_download` row is saved.
+1. Referrer opens `/friend-invite-friend/user_Id?employee_id=<EMPLOYEE_ID>`.
+2. The page checks the logged-in user and renders a QR for `/friend-invite-friend/shareapp/[employee_share.id]`.
+3. New user opens `/friend-invite-friend/shareapp/[employee_share.id]`.
+4. New user enters employee ID.
+5. New user lands on `/download`.
+6. If the employee ID exists in HR data, the download page shows the employee name.
+7. System saves an `employee_download` record when a verified employee clicks Download App.
+8. If the employee ID is not found, the new user can still download the app, but no `employee_download` row is saved.
 
 Optional help flow:
 
@@ -34,7 +34,7 @@ It does not create or mutate `point_ledger`; rewards are owned by the main datab
 `employee_share.id` is the referral identifier used in links:
 
 ```text
-https://deltahi.vercel.io/shareapp/{{id}}
+https://deltahi.vercel.io/friend-invite-friend/shareapp/{{id}}
 ```
 
 The local schema keeps a foreign key from `employee_share.user_id` to the existing

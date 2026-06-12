@@ -47,11 +47,11 @@ test('dashboard verification status is stored on download records', () => {
 })
 
 test('share page only validates employee identity before download, not app registration', () => {
-  const sharePage = readProjectFile('pages/shareapp/[shareId].vue')
+  const sharePage = readProjectFile('pages/friend-invite-friend/shareapp/[shareId].vue')
   const employeeApi = readProjectFile('server/api/employees/[employeeId].get.ts')
 
   assert.match(sharePage, /\/api\/employees\/\$\{encodeURIComponent\(employeeIdToLookup\)\}/)
-  assert.match(sharePage, /receiverLookupStatus\.value = employee \? 'found' : 'not-found'/)
+  assert.match(sharePage, /receiverLookupStatus\.value = employee \? ["']found["'] : ["']not-found["']/)
   assert.match(sharePage, /downloadReceiverEmployee\.value = employee/)
   assert.match(employeeApi, /findHrEmployeeByEmpId\(prisma, parsedEmployeeId\.data\)/)
   assert.doesNotMatch(sharePage, /register/i)

@@ -1,135 +1,153 @@
 <script setup lang="ts">
-import type { DownloadOs, TutorialOs } from '../../shared/schemas/referral'
+import type { DownloadOs, TutorialOs } from "../../shared/schemas/referral";
 
-type TutorialStep = 'download' | 'choose-os' | 'ios' | 'android'
+type TutorialStep = "download" | "choose-os" | "ios" | "android";
 
-const route = useRoute()
-const config = useRuntimeConfig()
-const step = ref<TutorialStep>('download')
-const actionError = ref('')
-const isRecordingClick = ref(false)
-const employeeShareId = computed(() => String(route.query.employeeShareId || ''))
-const recieverEmpId = computed(() => String(route.query.recieverEmpId || ''))
-const receiverName = computed(() => String(route.query.receiverName || ''))
-const canRecordDownload = computed(() => String(route.query.receiverEmployeeFound || '') === '1')
+const route = useRoute();
+const config = useRuntimeConfig();
+const step = ref<TutorialStep>("download");
+const actionError = ref("");
+const isRecordingClick = ref(false);
+const employeeShareId = computed(() =>
+  String(route.query.employeeShareId || ""),
+);
+const recieverEmpId = computed(() => String(route.query.recieverEmpId || ""));
+const receiverName = computed(() => String(route.query.receiverName || ""));
+const canRecordDownload = computed(
+  () => String(route.query.receiverEmployeeFound || "") === "1",
+);
 
-const downloadUrl = computed(() => String(config.public.downloadUrl || '').trim())
+const downloadUrl = computed(() =>
+  String(config.public.downloadUrl || "").trim(),
+);
 
 function detectDeviceOs(): DownloadOs {
   if (!import.meta.client) {
-    return 'unknown'
+    return "unknown";
   }
 
-  const userAgent = navigator.userAgent.toLowerCase()
+  const userAgent = navigator.userAgent.toLowerCase();
 
-  if (userAgent.includes('android')) {
-    return 'android'
+  if (userAgent.includes("android")) {
+    return "android";
   }
 
   if (/iphone|ipad|ipod/.test(userAgent)) {
-    return 'ios'
+    return "ios";
   }
 
-  if (
-    navigator.platform === 'MacIntel' &&
-    navigator.maxTouchPoints > 1
-  ) {
-    return 'ios'
+  if (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1) {
+    return "ios";
   }
 
-  return 'unknown'
+  return "unknown";
 }
 
 function getStatusCode(error: unknown) {
-  if (error && typeof error === 'object') {
-    if ('statusCode' in error) {
-      return Number(error.statusCode)
+  if (error && typeof error === "object") {
+    if ("statusCode" in error) {
+      return Number(error.statusCode);
     }
 
-    if ('response' in error && error.response && typeof error.response === 'object' && 'status' in error.response) {
-      return Number(error.response.status)
+    if (
+      "response" in error &&
+      error.response &&
+      typeof error.response === "object" &&
+      "status" in error.response
+    ) {
+      return Number(error.response.status);
     }
   }
 
-  return 0
+  return 0;
 }
 
 function getStatusMessage(error: unknown) {
-  if (error && typeof error === 'object') {
-    if ('statusMessage' in error) {
-      return String(error.statusMessage)
+  if (error && typeof error === "object") {
+    if ("statusMessage" in error) {
+      return String(error.statusMessage);
     }
 
-    if ('data' in error && error.data && typeof error.data === 'object' && 'statusMessage' in error.data) {
-      return String(error.data.statusMessage)
+    if (
+      "data" in error &&
+      error.data &&
+      typeof error.data === "object" &&
+      "statusMessage" in error.data
+    ) {
+      return String(error.data.statusMessage);
     }
   }
 
-  return 'Unable to save your referral. Please try again.'
+  return "Unable to save your referral. Please try again.";
 }
 
 async function downloadApp() {
-  actionError.value = ''
-  isRecordingClick.value = true
-  
+  actionError.value = "";
+  isRecordingClick.value = true;
+
   try {
     if (!recieverEmpId.value) {
-      actionError.value = 'Open a valid referral link and enter your employee ID first.'
-      return
+      actionError.value =
+        "Open a valid referral link and enter your employee ID first.";
+      return;
     }
 
     if (canRecordDownload.value) {
-      const detectedOs = step.value === 'ios' || step.value === 'android'
-        ? step.value
-        : detectDeviceOs()
+      const detectedOs =
+        step.value === "ios" || step.value === "android"
+          ? step.value
+          : detectDeviceOs();
 
       if (!employeeShareId.value) {
-        actionError.value = 'Open a valid referral link and enter your employee ID first.'
-        return
+        actionError.value =
+          "Open a valid referral link and enter your employee ID first.";
+        return;
       }
 
       try {
-        await $fetch('/api/downloads', {
-          method: 'POST',
+        await $fetch("/api/downloads", {
+          method: "POST",
           body: {
             employeeShareId: employeeShareId.value,
             recieverEmpId: recieverEmpId.value,
-            os: detectedOs
-          }
-        })
+            os: detectedOs,
+          },
+        });
       } catch (recordError) {
         if (![400, 404, 409].includes(getStatusCode(recordError))) {
-          actionError.value = getStatusMessage(recordError)
-          return
+          actionError.value = getStatusMessage(recordError);
+          return;
         }
       }
     }
-    const url = downloadUrl.value
+    const url = downloadUrl.value;
 
     if (!url) {
-      actionError.value = 'Download link is not configured.'
-      return
+      actionError.value = "Download link is not configured.";
+      return;
     }
 
     if (import.meta.client) {
-      window.location.href = url
+      window.location.href = url;
     }
   } catch {
-    actionError.value = 'Unable to open the download link. Please try again.'
+    actionError.value = "Unable to open the download link. Please try again.";
   } finally {
-    isRecordingClick.value = false
+    isRecordingClick.value = false;
   }
 }
 
 async function chooseOs(os: TutorialOs) {
-  actionError.value = ''
-  step.value = os
+  actionError.value = "";
+  step.value = os;
 }
 </script>
 
 <template>
   <main class="min-h-screen px-4 py-8">
-    <section class="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-md flex-col justify-center">
+    <section
+      class="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-md flex-col justify-center"
+    >
       <div class="delta-glow-card">
         <div v-if="step === 'download'">
           <p class="text-sm font-medium text-emerald-700">Ready to download</p>
@@ -149,7 +167,8 @@ async function chooseOs(os: TutorialOs) {
             v-else-if="recieverEmpId"
             class="mt-5 rounded-md bg-amber-50 p-3 text-sm text-amber-800"
           >
-            Employee ID {{ recieverEmpId }} was not found. You can still download the app, but this referral will not be saved.
+            Employee ID {{ recieverEmpId }} was not found. You can still
+            download the app, but this referral will not be saved.
           </div>
 
           <button
@@ -158,7 +177,7 @@ async function chooseOs(os: TutorialOs) {
             :disabled="isRecordingClick"
             @click="downloadApp"
           >
-            {{ isRecordingClick ? 'Opening...' : 'Download App' }}
+            {{ isRecordingClick ? "Opening..." : "Download App" }}
           </button>
 
           <div class="mt-5 border-t border-slate-200 pt-5 text-center">
@@ -175,7 +194,9 @@ async function chooseOs(os: TutorialOs) {
 
         <div v-else-if="step === 'choose-os'">
           <p class="text-sm font-medium text-brand-700">Tutorial</p>
-          <h1 class="mt-2 text-2xl font-semibold text-slate-950">Choose your OS</h1>
+          <h1 class="mt-2 text-2xl font-semibold text-slate-950">
+            Choose your OS
+          </h1>
           <div class="mt-6 grid grid-cols-2 gap-3">
             <button
               type="button"
@@ -203,19 +224,31 @@ async function chooseOs(os: TutorialOs) {
 
         <div v-else>
           <p class="text-sm font-medium text-brand-700">
-            {{ step === 'ios' ? 'iOS tutorial' : 'Android tutorial' }}
+            {{ step === "ios" ? "iOS tutorial" : "Android tutorial" }}
           </p>
           <h1 class="mt-2 text-2xl font-semibold text-slate-950">
-            {{ step === 'ios' ? 'Install on iPhone' : 'Install on Android' }}
+            {{ step === "ios" ? "Install on iPhone" : "Install on Android" }}
           </h1>
 
           <ol class="mt-5 space-y-3 text-sm leading-6 text-slate-700">
-            <li v-if="step === 'ios'">1. Tap Download App to open the App Store.</li>
-            <li v-if="step === 'ios'">2. Tap Get, then confirm with Face ID, Touch ID, or passcode.</li>
-            <li v-if="step === 'ios'">3. Open DeltaHi and complete your first login.</li>
-            <li v-if="step === 'android'">1. Tap Download App to open Google Play.</li>
-            <li v-if="step === 'android'">2. Tap Install and wait for the download to finish.</li>
-            <li v-if="step === 'android'">3. Open DeltaHi and complete your first login.</li>
+            <li v-if="step === 'ios'">
+              1. Tap Download App to open the App Store.
+            </li>
+            <li v-if="step === 'ios'">
+              2. Tap Get, then confirm with Face ID, Touch ID, or passcode.
+            </li>
+            <li v-if="step === 'ios'">
+              3. Open DeltaHi and complete your first login.
+            </li>
+            <li v-if="step === 'android'">
+              1. Tap Download App to open Google Play.
+            </li>
+            <li v-if="step === 'android'">
+              2. Tap Install and wait for the download to finish.
+            </li>
+            <li v-if="step === 'android'">
+              3. Open DeltaHi and complete your first login.
+            </li>
           </ol>
 
           <button
@@ -224,7 +257,7 @@ async function chooseOs(os: TutorialOs) {
             :disabled="isRecordingClick"
             @click="downloadApp"
           >
-            {{ isRecordingClick ? 'Opening...' : 'Download App' }}
+            {{ isRecordingClick ? "Opening..." : "Download App" }}
           </button>
           <button
             type="button"
@@ -235,7 +268,10 @@ async function chooseOs(os: TutorialOs) {
           </button>
         </div>
 
-        <p v-if="actionError" class="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-700">
+        <p
+          v-if="actionError"
+          class="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-700"
+        >
           {{ actionError }}
         </p>
       </div>
