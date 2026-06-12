@@ -5,7 +5,7 @@ type EmployeeShareWithEmployee = EmployeeShare & {
 }
 
 export function buildShareUrl(siteUrl: string, employeeShareId: string) {
-  return `${siteUrl.replace(/\/$/, '')}/shareapp/${employeeShareId}`
+  return `${siteUrl.replace(/\/$/, '')}/friend-invite-friend/shareapp/${employeeShareId}`
 }
 
 export function getEmployeeDisplayName(employee: Pick<HrEmployeeBasicInfo, 'empid' | 'name' | 'surname'> | null | undefined) {
@@ -22,6 +22,7 @@ export function toPublicEmployeeShare(share: EmployeeShareWithEmployee, siteUrl:
     userId: share.userId,
     employeeId: share.employeeId,
     employeeName: share.employeeName?.trim() || getEmployeeDisplayName(share.employee) || share.employeeId,
+    pointBalance: share.pointBalance,
     shareUrl: buildShareUrl(siteUrl, share.id),
     createdAt: share.createdAt,
     updatedAt: share.updatedAt

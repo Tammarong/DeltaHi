@@ -227,7 +227,7 @@ export async function getAdminDashboard(options: AdminDashboardOptions = {}) {
         name: share ? getDisplayName(share.employee) : group.employeeShareId,
         employeeId: share?.employeeId ?? '',
         refers: group._count._all,
-        score: getMockReferrerScore(group._count._all, index + 1),
+        score: share?.pointBalance ?? getMockReferrerScore(group._count._all, index + 1),
         qualified: index === 0
       }
     })

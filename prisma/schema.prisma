@@ -34,6 +34,7 @@ model EmployeeShare {
   userId       String              @unique @map("user_id") @db.Uuid
   employeeId   String              @map("employee_id") @db.VarChar
   employeeName String?             @map("employee_name") @db.VarChar
+  pointBalance Int?                @map("point_balance")
   createdAt    DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt    DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   deletedAt    DateTime?           @map("deleted_at") @db.Timestamptz(6)
