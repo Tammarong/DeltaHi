@@ -75,6 +75,56 @@ Open Prisma Studio with:
 npm run db:studio
 ```
 
+## Setup Without Docker
+
+Prisma does not require Docker. Docker is only used by this project to start the
+local PostgreSQL database. To run Prisma without Docker, install and start
+PostgreSQL locally, then point `.env` at that database:
+
+```bash
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/friends_get_friends"
+```
+
+Create the database and local reference schemas:
+
+```bash
+createdb -U postgres friends_get_friends
+psql -U postgres -d friends_get_friends -f prisma/local-reference-schema.sql
+```
+
+Then run Prisma directly:
+
+```bash
+npx prisma generate
+npx prisma db push
+npx prisma db execute --schema prisma/schema.prisma --file prisma/example-data.sql
+npm run dev
+```
+
+Open Prisma Studio without Docker:
+
+```bash
+npx prisma studio
+```
+
+Do not use `npm run db:setup`, `npm run db:up`, `npm run db:down`, or
+`npm run db:reset` for the no-Docker setup because those scripts call
+`docker compose`.
+
+If Prisma reports `P1001: Can't reach database server at localhost:5432`,
+PostgreSQL is not running or is not listening on port `5432`. On Windows, check
+the port with:
+
+```powershell
+Test-NetConnection localhost -Port 5432
+```
+
+If `TcpTestSucceeded` is `False`, start your local PostgreSQL service or update
+`DATABASE_URL` to point to a reachable PostgreSQL server.
+
+`prisma/example-data.sql` resets local sample data. Do not run it against a
+shared or production database.
+
 If you already started the local database before `prisma/local-reference-schema.sql`
 existed, reset it once:
 

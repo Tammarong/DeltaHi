@@ -6,7 +6,8 @@ import {
   findActiveEmployeeDownloadByReceiver,
   findActiveEmployeeShareById,
   findHrEmployeeByEmpId,
-  findServiceUserById,
+  upsertHrEmployeeReference,
+  upsertServiceUserReference,
   updateEmployeeDownloadOs,
   verifyActiveEmployeeDownloadByReceiver,
   upsertEmployeeShare
@@ -29,35 +30,20 @@ export async function getEmployeeShare(shareId: string, siteUrl: string) {
 
 export async function createOrUpdateEmployeeShare(input: CreateEmployeeShareInput, siteUrl: string) {
   const share = await prisma.$transaction(async (tx) => {
-    const [user, employee] = await Promise.all([
-      findServiceUserById(tx, input.userId),
-      findHrEmployeeByEmpId(tx, input.employeeId)
+    const [, employee] = await Promise.all([
+      upsertServiceUserReference(tx, {
+        id: input.userId,
+        employeeId: input.employeeId
+      }),
+      upsertHrEmployeeReference(tx, {
+        empid: input.employeeId,
+        employeeName: input.employeeName
+      })
     ])
-
-    if (!user) {
-      throw createError({
-        statusCode: 404,
-        statusMessage: 'User was not found.'
-      })
-    }
-
-    if (!employee) {
-      throw createError({
-        statusCode: 404,
-        statusMessage: 'Employee was not found.'
-      })
-    }
-
-    if (user.employeeId.toUpperCase() !== input.employeeId) {
-      throw createError({
-        statusCode: 400,
-        statusMessage: 'Employee ID does not match this user.'
-      })
-    }
 
     return upsertEmployeeShare(tx, {
       ...input,
-      employeeName: getEmployeeDisplayName(employee) || input.employeeId,
+      employeeName: input.employeeName?.trim() || getEmployeeDisplayName(employee) || input.employeeId,
       pointBalance: input.pointBalance
     })
   })

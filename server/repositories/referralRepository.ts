@@ -39,6 +39,53 @@ export function findHrEmployeeByEmpId(db: PrismaTransaction, empid: string) {
   })
 }
 
+export function upsertServiceUserReference(
+  db: PrismaTransaction,
+  data: {
+    id: string
+    employeeId: string
+  }
+) {
+  return db.serviceUser.upsert({
+    where: {
+      id: data.id
+    },
+    create: {
+      id: data.id,
+      employeeId: data.employeeId
+    },
+    update: {
+      employeeId: data.employeeId
+    }
+  })
+}
+
+export function upsertHrEmployeeReference(
+  db: PrismaTransaction,
+  data: {
+    empid: string
+    employeeName?: string | null
+  }
+) {
+  const employeeName = data.employeeName?.trim() || null
+
+  return db.hrEmployeeBasicInfo.upsert({
+    where: {
+      empid: data.empid
+    },
+    create: {
+      empid: data.empid,
+      name: employeeName,
+      surname: null
+    },
+    update: employeeName
+      ? {
+          name: employeeName
+        }
+      : {}
+  })
+}
+
 export function upsertEmployeeShare(
   db: PrismaTransaction,
   data: {

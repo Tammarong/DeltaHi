@@ -29,9 +29,22 @@ export const pointBalanceSchema = z.preprocess((value) => {
   return value
 }, z.number().int('Point balance must be a whole number.').min(0, 'Point balance cannot be negative.').nullable())
 
+export const employeeNameSchema = z.preprocess((value) => {
+  if (value === undefined || value === null) {
+    return null
+  }
+
+  if (typeof value === 'string') {
+    return value.trim() || null
+  }
+
+  return value
+}, z.string().max(255, 'Employee name is too long.').nullable()).optional()
+
 export const createEmployeeShareSchema = z.object({
   userId: userIdSchema,
   employeeId: employeeIdSchema,
+  employeeName: employeeNameSchema,
   pointBalance: pointBalanceSchema
 })
 

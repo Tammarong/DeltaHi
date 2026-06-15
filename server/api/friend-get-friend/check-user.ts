@@ -8,6 +8,21 @@ type CheckUserRequestBody = {
   employeeId?: unknown;
 };
 
+type CheckUserResponse = {
+  status: number;
+  message: string;
+  data: null | {
+    id: string;
+    employee_id: string;
+    point_balance?: number | string | null;
+    pointBalance?: number | string | null;
+    employee_info?: {
+      full_name?: string | null;
+      full_name_th?: string | null;
+    } | null;
+  };
+};
+
 function firstQueryValue(value: unknown) {
   if (Array.isArray(value)) {
     return value[0];
@@ -18,6 +33,10 @@ function firstQueryValue(value: unknown) {
 
 function toNullableString(value: string | null | undefined) {
   return value?.trim() || null;
+}
+
+function buildApiUrl(baseUrl: string, path: string) {
+  return `${baseUrl.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
 }
 
 export default defineEventHandler(async (event) => {
@@ -38,6 +57,20 @@ export default defineEventHandler(async (event) => {
       statusMessage:
         parsedEmployeeId.error.issues[0]?.message || "Employee ID is required.",
     });
+  }
+
+  const config = useRuntimeConfig(event);
+  const deltahiApiBaseUrl = String(config.deltahiApiBaseUrl || "").trim();
+
+  if (deltahiApiBaseUrl) {
+    return await $fetch<CheckUserResponse>(
+      buildApiUrl(deltahiApiBaseUrl, "/friend-get-friend/check-user"),
+      {
+        query: {
+          employee_id: parsedEmployeeId.data,
+        },
+      },
+    );
   }
 
   const [user, employee] = await Promise.all([

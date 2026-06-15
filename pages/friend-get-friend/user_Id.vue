@@ -26,6 +26,8 @@ type CheckUserResponse = {
     point_balance?: number | string | null;
     pointBalance?: number | string | null;
     employee_info?: {
+      name?: string | null;
+      surname?: string | null;
       full_name?: string | null;
       full_name_th?: string | null;
     } | null;
@@ -74,6 +76,19 @@ const currentLanguageOption = computed(
     languageOptions[1],
 );
 
+const config = useRuntimeConfig();
+const checkUserUrl = computed(() => {
+  const deltahiApiBaseUrl = String(
+    config.public.deltahiApiBaseUrl || "",
+  ).trim();
+
+  if (!deltahiApiBaseUrl) {
+    return "/api/friend-get-friend/check-user";
+  }
+
+  return buildApiUrl(deltahiApiBaseUrl, "/friend-get-friend/check-user");
+});
+
 const formErrorText = computed(() => {
   if (!formError.value) {
     return "";
@@ -107,6 +122,24 @@ function getStatusMessage(error: unknown): LocalizedMessage | string {
   }
 
   return { key: "qrPage.errors.unavailable" };
+}
+
+function buildApiUrl(baseUrl: string, path: string) {
+  return `${baseUrl.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
+}
+
+function getCheckUserEmployeeName(data: CheckUserResponse["data"]) {
+  const employeeInfo = data?.employee_info;
+
+  return (
+    employeeInfo?.full_name?.trim() ||
+    [employeeInfo?.name, employeeInfo?.surname]
+      .filter(Boolean)
+      .join(" ")
+      .trim() ||
+    employeeInfo?.full_name_th?.trim() ||
+    null
+  );
 }
 
 function toggleLanguageMenu() {
@@ -155,14 +188,11 @@ async function submitReferrerEmployeeId() {
   isCreatingShare.value = true;
 
   try {
-    const response = await $fetch<CheckUserResponse>(
-      "/api/friend-get-friend/check-user",
-      {
-        query: {
-          employee_id: normalizedReferrerEmployeeId.value,
-        },
+    const response = await $fetch<CheckUserResponse>(checkUserUrl.value, {
+      query: {
+        employee_id: normalizedReferrerEmployeeId.value,
       },
-    );
+    });
 
     if (!response.data?.id || !response.data.employee_id) {
       throw new Error("User was not found.");
@@ -175,6 +205,7 @@ async function submitReferrerEmployeeId() {
         body: {
           userId: response.data.id,
           employeeId: response.data.employee_id,
+          employeeName: getCheckUserEmployeeName(response.data),
           pointBalance:
             response.data.point_balance ?? response.data.pointBalance ?? null,
         },
