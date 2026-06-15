@@ -1,6 +1,6 @@
 {
   "qrPage": {
-    "title": "กิจกรรม Friends Invite Friends",
+    "title": "กิจกรรม Friends Get Friends",
     "subtitle": "สแกน QR code นี้ เพื่อดาวน์โหลด DeltaHi",
     "status": {
       "loading": "กำลังโหลด QR แนะนำ..."
@@ -8,7 +8,10 @@
     "referrer": {
       "title": "สร้าง QR แนะนำของคุณ",
       "subtitle": "กรอกรหัสพนักงานของคุณเพื่อสร้าง QR code สำหรับส่งต่อให้เพื่อน",
-      "action": "สร้าง QR Code"
+      "action": "สร้าง QR Code",
+      "checking": "กำลังตรวจสอบ...",
+      "checkingTitle": "กำลังตรวจสอบรหัสพนักงาน",
+      "checkingDescription": "โปรดรอสักครู่ ระบบกำลังตรวจสอบรหัสพนักงานและเตรียม QR code ของคุณ"
     },
     "errors": {
       "enterEmployeeId": "กรุณากรอกรหัสพนักงานเพื่อสร้าง QR code ของคุณ",

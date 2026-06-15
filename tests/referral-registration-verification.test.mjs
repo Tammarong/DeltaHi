@@ -47,7 +47,7 @@ test('dashboard verification status is stored on download records', () => {
 })
 
 test('share page only validates employee identity before download, not app registration', () => {
-  const sharePage = readProjectFile('pages/friend-invite-friend/shareapp/[shareId].vue')
+  const sharePage = readProjectFile('pages/friend-get-friend/shareapp/[shareId].vue')
   const employeeApi = readProjectFile('server/api/employees/[employeeId].get.ts')
 
   assert.match(sharePage, /\/api\/employees\/\$\{encodeURIComponent\(employeeIdToLookup\)\}/)

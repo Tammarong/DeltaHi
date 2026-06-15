@@ -264,7 +264,7 @@ watch(
             {{ formErrorText }}
           </p>
           <NuxtLink
-            to="/friend-invite-friend/user_Id"
+            to="/friend-get-friend/user_Id"
             class="inline-flex h-10 w-full items-center justify-center rounded-md border border-brand-600 bg-brand-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
           >
             {{ t("shareApp.steps.enterEmployeeId") }}

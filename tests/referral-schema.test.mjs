@@ -55,8 +55,8 @@ test('employee shares persist and expose the referrer employee name', () => {
   const service = readProjectFile('server/services/referralService.ts')
   const utils = readProjectFile('server/utils/referral.ts')
   const sharedTypes = readProjectFile('shared/types/referral.ts')
-  const sharePage = readProjectFile('pages/friend-invite-friend/shareapp/[shareId].vue')
-  const entryPage = readProjectFile('pages/friend-invite-friend/user_Id.vue')
+  const sharePage = readProjectFile('pages/friend-get-friend/shareapp/[shareId].vue')
+  const entryPage = readProjectFile('pages/friend-get-friend/user_Id.vue')
 
   assert.match(migration, /ADD COLUMN "employee_name" varchar/)
   assert.match(migration, /concat_ws\(' ', employee\."name", employee\."surname"\)/)
@@ -134,24 +134,31 @@ test('download service keeps receiver employee IDs unique across referral shares
   assert.match(migration, /WHERE "deleted_at" IS NULL/)
 })
 
-test('shareapp referral route exists under the friend-invite-friend Nuxt route path', () => {
-  const shareappRoutePath = resolve(rootDir, 'pages/friend-invite-friend/shareapp/[shareId].vue')
+test('shareapp referral route exists under the friend-get-friend Nuxt route path', () => {
+  const shareappRoutePath = resolve(rootDir, 'pages/friend-get-friend/shareapp/[shareId].vue')
+  const legacyRoutePath = resolve(rootDir, 'pages/friend-invite-friend/[...slug].vue')
+  const legacyRedirectMiddlewarePath = resolve(rootDir, 'server/middleware/legacyFriendInviteFriendRoutes.ts')
   const nestedShareappRoutePath = resolve(rootDir, 'pages/share/shareapp/[shareId].vue')
+  const rootRedirectPage = readProjectFile('pages/index.vue')
 
   assert.equal(existsSync(shareappRoutePath), true)
+  assert.equal(existsSync(legacyRoutePath), false)
+  assert.equal(existsSync(legacyRedirectMiddlewarePath), false)
   assert.equal(existsSync(nestedShareappRoutePath), false)
-  assert.match(readProjectFile('server/utils/referral.ts'), /\/friend-invite-friend\/shareapp\/\$\{employeeShareId\}/)
+  assert.match(readProjectFile('server/utils/referral.ts'), /\/friend-get-friend\/shareapp\/\$\{employeeShareId\}/)
+  assert.match(rootRedirectPage, /navigateTo\(["']\/friend-get-friend\/user_Id["']/)
 })
 
 test('first page checks manual employee IDs before routing to the QR page', () => {
-  const entryPage = readProjectFile('pages/friend-invite-friend/user_Id.vue')
-  const qrPage = readProjectFile('pages/friend-invite-friend/qr-code.vue')
-  const checkUserApi = readProjectFile('server/api/friend-invite-friend/check-user.ts')
+  const entryPage = readProjectFile('pages/friend-get-friend/user_Id.vue')
+  const qrPage = readProjectFile('pages/friend-get-friend/qr-code.vue')
+  const checkUserApi = readProjectFile('server/api/friend-get-friend/check-user.ts')
   const enLocale = readProjectFile('i18n/locales/en.json')
   const thLocale = readProjectFile('i18n/locales/th.json')
 
-  assert.equal(existsSync(resolve(rootDir, 'pages/friend-invite-friend/qr-code.vue')), true)
+  assert.equal(existsSync(resolve(rootDir, 'pages/friend-get-friend/qr-code.vue')), true)
   assert.match(entryPage, /const router = useRouter\(\)/)
+  assert.match(entryPage, /const isCreatingShare = ref\(false\)/)
   assert.match(entryPage, /const referrerEmployeeId = ref\(["']["']\)/)
   assert.match(entryPage, /\.toUpperCase\(\)/)
   assert.match(entryPage, /const normalizedReferrerEmployeeId = computed/)
@@ -159,20 +166,30 @@ test('first page checks manual employee IDs before routing to the QR page', () =
   assert.match(entryPage, /point_balance\?: number \| string \| null/)
   assert.match(entryPage, /type GetEmployeeShareResponse =/)
   assert.match(entryPage, /async function submitReferrerEmployeeId\(\)/)
+  assert.match(entryPage, /if \(isCreatingShare\.value\) \{[\s\S]*return/)
+  assert.match(entryPage, /isCreatingShare\.value = true/)
+  assert.match(entryPage, /isCreatingShare\.value = false/)
   assert.match(entryPage, /key: ["']qrPage\.errors\.enterEmployeeId["']/)
-  assert.match(entryPage, /\$fetch<CheckUserResponse>\(\s*["']\/api\/friend-invite-friend\/check-user["']/)
+  assert.match(entryPage, /\$fetch<CheckUserResponse>\(\s*["']\/api\/friend-get-friend\/check-user["']/)
   assert.match(entryPage, /employee_id:\s*normalizedReferrerEmployeeId\.value/)
   assert.match(entryPage, /\$fetch<GetEmployeeShareResponse>\(\s*["']\/api\/employee-shares["']/)
   assert.match(entryPage, /userId:\s*response\.data\.id/)
   assert.match(entryPage, /employeeId:\s*response\.data\.employee_id/)
   assert.match(entryPage, /pointBalance:\s*[\s\S]*response\.data\.point_balance/)
-  assert.match(entryPage, /path:\s*["']\/friend-invite-friend\/qr-code["']/)
+  assert.match(entryPage, /path:\s*["']\/friend-get-friend\/qr-code["']/)
   assert.match(entryPage, /employeeShareId:\s*share\.id/)
   assert.match(entryPage, /v-model="referrerEmployeeId"/)
+  assert.match(entryPage, /:disabled="isCreatingShare"/)
+  assert.match(entryPage, /:aria-busy="isCreatingShare"/)
   assert.match(entryPage, /@submit\.prevent="submitReferrerEmployeeId"/)
   assert.match(entryPage, /qrPage\.referrer\.title/)
   assert.match(entryPage, /qrPage\.referrer\.subtitle/)
   assert.match(entryPage, /qrPage\.referrer\.action/)
+  assert.match(entryPage, /qrPage\.referrer\.checking/)
+  assert.match(entryPage, /qrPage\.referrer\.checkingTitle/)
+  assert.match(entryPage, /qrPage\.referrer\.checkingDescription/)
+  assert.match(entryPage, /v-if="isCreatingShare"/)
+  assert.match(entryPage, /role="status"/)
   assert.doesNotMatch(entryPage, /navigateTo\(/)
   assert.doesNotMatch(entryPage, /router\.replace\(/)
   assert.doesNotMatch(entryPage, /employeeShareIdFromQuery/)
@@ -191,7 +208,7 @@ test('first page checks manual employee IDs before routing to the QR page', () =
   assert.match(qrPage, /watch\(\s*employeeShareIdFromQuery/)
   assert.match(qrPage, /void loadShareQrById\(employeeShareId\)/)
   assert.match(qrPage, /t\(["']qrPage\.status\.loading["']\)/)
-  assert.match(qrPage, /to=["']\/friend-invite-friend\/user_Id["']/)
+  assert.match(qrPage, /to=["']\/friend-get-friend\/user_Id["']/)
   assert.doesNotMatch(qrPage, /const employeeIdFromQuery = computed/)
   assert.doesNotMatch(qrPage, /route\.query\.employee_id/)
   assert.doesNotMatch(qrPage, /type CheckUserResponse =/)
@@ -202,8 +219,12 @@ test('first page checks manual employee IDs before routing to the QR page', () =
   assert.doesNotMatch(qrPage, /@submit\.prevent="submitReferrerEmployeeId"/)
   assert.match(enLocale, /"referrer"/)
   assert.match(enLocale, /"enterEmployeeId"/)
+  assert.match(enLocale, /"checkingTitle"/)
+  assert.match(enLocale, /"checkingDescription"/)
   assert.match(thLocale, /"referrer"/)
   assert.match(thLocale, /"enterEmployeeId"/)
+  assert.match(thLocale, /"checkingTitle"/)
+  assert.match(thLocale, /"checkingDescription"/)
   assert.match(checkUserApi, /employeeIdSchema/)
   assert.match(checkUserApi, /query\.employee_id/)
   assert.match(checkUserApi, /employee_id:\s*user\.employeeId/)
@@ -226,7 +247,7 @@ test('first page checks manual employee IDs before routing to the QR page', () =
 })
 
 test('share page opens the download popup instead of navigating to the download page', () => {
-  const sharePage = readProjectFile('pages/friend-invite-friend/shareapp/[shareId].vue')
+  const sharePage = readProjectFile('pages/friend-get-friend/shareapp/[shareId].vue')
 
   assert.doesNotMatch(sharePage, /path:\s*["']\/download["']/)
   assert.doesNotMatch(sharePage, /receiverEmployeeFound:/)
@@ -259,8 +280,8 @@ test('download records include detected OS', () => {
   const schema = readProjectFile('shared/schemas/referral.ts')
   const migration = readProjectFile('prisma/migrations/20260604000000_add_download_os/migration.sql')
   const repository = readProjectFile('server/repositories/referralRepository.ts')
-  const downloadPage = readProjectFile('pages/friend-invite-friend/download.vue')
-  const adminPage = readProjectFile('pages/friend-invite-friend/admin.vue')
+  const downloadPage = readProjectFile('pages/friend-get-friend/download.vue')
+  const adminPage = readProjectFile('pages/friend-get-friend/admin.vue')
   const adminService = readProjectFile('server/services/adminDashboardService.ts')
   const referralService = readProjectFile('server/services/referralService.ts')
 
@@ -280,8 +301,8 @@ test('download records include detected OS', () => {
 test('download page reads the public download URL from runtime config', () => {
   const nuxtConfig = readProjectFile('nuxt.config.ts')
   const envExample = readProjectFile('.env.example')
-  const downloadPage = readProjectFile('pages/friend-invite-friend/download.vue')
-  const sharePage = readProjectFile('pages/friend-invite-friend/shareapp/[shareId].vue')
+  const downloadPage = readProjectFile('pages/friend-get-friend/download.vue')
+  const sharePage = readProjectFile('pages/friend-get-friend/shareapp/[shareId].vue')
 
   assert.match(nuxtConfig, /downloadUrl:\s*process\.env\.NUXT_PUBLIC_DOWNLOAD_URL/)
   assert.match(envExample, /NUXT_PUBLIC_DOWNLOAD_URL=/)
@@ -292,7 +313,7 @@ test('download page reads the public download URL from runtime config', () => {
 
 test('share page validates receiver employee before showing the download popup', () => {
   const employeeApiPath = resolve(rootDir, 'server/api/employees/[employeeId].get.ts')
-  const sharePage = readProjectFile('pages/friend-invite-friend/shareapp/[shareId].vue')
+  const sharePage = readProjectFile('pages/friend-get-friend/shareapp/[shareId].vue')
 
   assert.equal(existsSync(employeeApiPath), true)
   assert.match(readProjectFile('server/api/employees/[employeeId].get.ts'), /findHrEmployeeByEmpId/)
@@ -307,7 +328,7 @@ test('share page validates receiver employee before showing the download popup',
 })
 
 test('share page debounces employee lookup while typing employee ID', () => {
-  const sharePage = readProjectFile('pages/friend-invite-friend/shareapp/[shareId].vue')
+  const sharePage = readProjectFile('pages/friend-get-friend/shareapp/[shareId].vue')
 
   assert.match(sharePage, /const employeeLookupDelayMs = 400/)
   assert.match(sharePage, /watch\(employeeId/)
@@ -333,7 +354,7 @@ test('local PostgreSQL setup exists for Prisma Studio', () => {
 })
 
 test('admin dashboard reads real download records and shows downloaded at', () => {
-  const adminPage = readProjectFile('pages/friend-invite-friend/admin.vue')
+  const adminPage = readProjectFile('pages/friend-get-friend/admin.vue')
   const adminApi = readProjectFile('server/api/admin/dashboard.get.ts')
   const adminCsvApi = readProjectFile('server/api/admin/downloads.csv.get.ts')
   const adminService = readProjectFile('server/services/adminDashboardService.ts')

@@ -1,4 +1,4 @@
-# Friend Invite Friend Check User API
+# Friend Get Friend Check User API
 
 This endpoint verifies the referrer employee ID before the app creates a QR code.
 
@@ -6,21 +6,21 @@ It is used only after the referrer manually submits their employee ID on the fir
 
 ## Current Workflow
 
-1. Referrer opens `/friend-invite-friend/user_Id`.
+1. Referrer opens `/friend-get-friend/user_Id`.
 2. Referrer manually enters their employee ID.
-3. After the referrer presses Generate QR Code, the first page calls `GET /api/friend-invite-friend/check-user?employee_id=[employee_id]`.
+3. After the referrer presses Generate QR Code, the first page calls `GET /api/friend-get-friend/check-user?employee_id=[employee_id]`.
 4. If the employee ID is valid, the API returns the DeltaHi user id and employee data.
 5. The first page sends that user id to `POST /api/employee-shares`.
 6. `POST /api/employee-shares` creates or reuses the `employee_share` row.
-7. The first page navigates to `/friend-invite-friend/qr-code?employeeShareId=[employee_share.id]`.
+7. The first page navigates to `/friend-get-friend/qr-code?employeeShareId=[employee_share.id]`.
 8. The QR page loads that share with `GET /api/shares/[employee_share.id]`.
 9. The QR page generates a QR code from the returned share URL.
-10. The QR points friends to `/friend-invite-friend/shareapp/[employee_share.id]`.
+10. The QR points friends to `/friend-get-friend/shareapp/[employee_share.id]`.
 
 ## Endpoint
 
 ```http
-GET /api/friend-invite-friend/check-user
+GET /api/friend-get-friend/check-user
 ```
 
 ## Query Parameters
@@ -34,7 +34,7 @@ GET /api/friend-invite-friend/check-user
 ## Example Request
 
 ```http
-GET /api/friend-invite-friend/check-user?employee_id=86676767
+GET /api/friend-get-friend/check-user?employee_id=86676767
 ```
 
 ## Success Response
@@ -125,7 +125,7 @@ Expected response:
     "employeeId": "86676767",
     "employeeName": "Six Seven",
     "pointBalance": 0,
-    "shareUrl": "https://deltahi.vercel.io/friend-invite-friend/shareapp/22222222-2222-4222-8222-222222222222"
+    "shareUrl": "https://deltahi.vercel.io/friend-get-friend/shareapp/22222222-2222-4222-8222-222222222222"
   }
 }
 ```
@@ -133,7 +133,7 @@ Expected response:
 Then the first input page redirects to:
 
 ```http
-GET /friend-invite-friend/qr-code?employeeShareId=22222222-2222-4222-8222-222222222222
+GET /friend-get-friend/qr-code?employeeShareId=22222222-2222-4222-8222-222222222222
 ```
 
 The QR page loads the share and generates the QR code from `share.shareUrl`.

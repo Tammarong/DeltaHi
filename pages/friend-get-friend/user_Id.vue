@@ -156,7 +156,7 @@ async function submitReferrerEmployeeId() {
 
   try {
     const response = await $fetch<CheckUserResponse>(
-      "/api/friend-invite-friend/check-user",
+      "/api/friend-get-friend/check-user",
       {
         query: {
           employee_id: normalizedReferrerEmployeeId.value,
@@ -182,7 +182,7 @@ async function submitReferrerEmployeeId() {
     );
 
     await router.push({
-      path: "/friend-invite-friend/qr-code",
+      path: "/friend-get-friend/qr-code",
       query: {
         employeeShareId: share.id,
       },
@@ -273,7 +273,11 @@ watch(referrerEmployeeId, () => {
           {{ t("qrPage.referrer.subtitle") }}
         </p>
 
-        <form class="mt-6 space-y-4" @submit.prevent="submitReferrerEmployeeId">
+        <form
+          class="mt-6 space-y-4"
+          :aria-busy="isCreatingShare"
+          @submit.prevent="submitReferrerEmployeeId"
+        >
           <label class="block">
             <span class="text-sm font-medium text-slate-800">
               {{ t("shareApp.employeeId.label") }}
@@ -296,7 +300,7 @@ watch(referrerEmployeeId, () => {
           >
             {{
               isCreatingShare
-                ? t("qrPage.status.loading")
+                ? t("qrPage.referrer.checking")
                 : t("qrPage.referrer.action")
             }}
           </button>
@@ -369,5 +373,26 @@ watch(referrerEmployeeId, () => {
         </footer>
       </div>
     </section>
+
+    <div
+      v-if="isCreatingShare"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 px-4"
+      role="status"
+      aria-live="polite"
+      aria-modal="true"
+    >
+      <div class="w-full max-w-sm rounded-lg bg-white p-5 text-center shadow-xl">
+        <div
+          class="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-brand-600"
+          aria-hidden="true"
+        />
+        <p class="mt-4 text-base font-semibold text-slate-950">
+          {{ t("qrPage.referrer.checkingTitle") }}
+        </p>
+        <p class="mt-2 text-sm leading-6 text-slate-600">
+          {{ t("qrPage.referrer.checkingDescription") }}
+        </p>
+      </div>
+    </div>
   </main>
 </template>
