@@ -1,6 +1,6 @@
 {
   "qrPage": {
-    "title": "Friends Invite Friends Event",
+    "title": "Friends Get Friends Event",
     "subtitle": "Scan this QR code to download DeltaHi",
     "status": {
       "loading": "Loading referral QR..."
@@ -8,7 +8,10 @@
     "referrer": {
       "title": "Create your referral QR",
       "subtitle": "Enter your employee ID to generate a QR code for your friends.",
-      "action": "Generate QR Code"
+      "action": "Generate QR Code",
+      "checking": "Checking...",
+      "checkingTitle": "Checking employee ID",
+      "checkingDescription": "Please wait while we verify your employee ID and prepare your QR code."
     },
     "errors": {
       "enterEmployeeId": "Enter your employee ID to generate your QR code.",

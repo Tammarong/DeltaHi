@@ -5,7 +5,7 @@ type EmployeeShareWithEmployee = EmployeeShare & {
 }
 
 export function buildShareUrl(siteUrl: string, employeeShareId: string) {
-  return `${siteUrl.replace(/\/$/, '')}/friend-invite-friend/shareapp/${employeeShareId}`
+  return `${siteUrl.replace(/\/$/, '')}/friend-get-friend/shareapp/${employeeShareId}`
 }
 
 export function getEmployeeDisplayName(employee: Pick<HrEmployeeBasicInfo, 'empid' | 'name' | 'surname'> | null | undefined) {
