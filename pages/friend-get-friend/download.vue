@@ -9,12 +9,10 @@ const step = ref<TutorialStep>("download");
 const actionError = ref("");
 const isRecordingClick = ref(false);
 const employeeShareId = computed(() =>
-  String(route.query.employeeShareId || ""),
+  String(route.query.employeeShareId || "").trim(),
 );
-const recieverEmpId = computed(() => String(route.query.recieverEmpId || ""));
-const receiverName = computed(() => String(route.query.receiverName || ""));
-const canRecordDownload = computed(
-  () => String(route.query.receiverEmployeeFound || "") === "1",
+const recieverEmpId = computed(() =>
+  String(route.query.recieverEmpId || "").trim(),
 );
 
 const downloadUrl = computed(() =>
@@ -92,34 +90,33 @@ async function downloadApp() {
       return;
     }
 
-    if (canRecordDownload.value) {
-      const detectedOs =
-        step.value === "ios" || step.value === "android"
-          ? step.value
-          : detectDeviceOs();
+    const detectedOs =
+      step.value === "ios" || step.value === "android"
+        ? step.value
+        : detectDeviceOs();
 
-      if (!employeeShareId.value) {
-        actionError.value =
-          "Open a valid referral link and enter your employee ID first.";
+    if (!employeeShareId.value) {
+      actionError.value =
+        "Open a valid referral link and enter your employee ID first.";
+      return;
+    }
+
+    try {
+      await $fetch("/api/downloads", {
+        method: "POST",
+        body: {
+          employeeShareId: employeeShareId.value,
+          recieverEmpId: recieverEmpId.value,
+          os: detectedOs,
+        },
+      });
+    } catch (recordError) {
+      if (![400, 404, 409].includes(getStatusCode(recordError))) {
+        actionError.value = getStatusMessage(recordError);
         return;
       }
-
-      try {
-        await $fetch("/api/downloads", {
-          method: "POST",
-          body: {
-            employeeShareId: employeeShareId.value,
-            recieverEmpId: recieverEmpId.value,
-            os: detectedOs,
-          },
-        });
-      } catch (recordError) {
-        if (![400, 404, 409].includes(getStatusCode(recordError))) {
-          actionError.value = getStatusMessage(recordError);
-          return;
-        }
-      }
     }
+
     const url = downloadUrl.value;
 
     if (!url) {
@@ -158,17 +155,10 @@ async function chooseOs(os: TutorialOs) {
             Tap Download App to save your referral and install the app.
           </p>
           <div
-            v-if="canRecordDownload && receiverName"
+            v-if="recieverEmpId"
             class="mt-5 rounded-md bg-emerald-50 p-3 text-sm text-emerald-800"
           >
-            Employee verified: {{ receiverName }}
-          </div>
-          <div
-            v-else-if="recieverEmpId"
-            class="mt-5 rounded-md bg-amber-50 p-3 text-sm text-amber-800"
-          >
-            Employee ID {{ recieverEmpId }} was not found. You can still
-            download the app, but this referral will not be saved.
+            Employee ID {{ recieverEmpId }} is ready to be recorded.
           </div>
 
           <button

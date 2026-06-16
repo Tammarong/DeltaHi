@@ -6,10 +6,7 @@ import deltaHiBannerUrl from "~/assets/img/DeltaHi Banner.svg";
 
 type EmployeeShare = {
   id: string;
-  userId: string;
   employeeId: string;
-  employeeName: string;
-  pointBalance: number | null;
   shareUrl: string;
   createdAt: string;
   updatedAt: string;

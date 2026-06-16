@@ -11,108 +11,48 @@ export function findActiveEmployeeShareById(db: PrismaTransaction, id: string) {
     where: {
       id,
       ...activeRecord
-    },
-    include: {
-      employee: true
     }
   })
 }
 
-export function findActiveEmployeeShareByUserId(db: PrismaTransaction, userId: string) {
+export function findEmployeeShareByEmployeeId(db: PrismaTransaction, employeeId: string) {
   return db.employeeShare.findFirst({
     where: {
-      userId,
-      ...activeRecord
+      employeeId
+    },
+    orderBy: {
+      createdAt: 'asc'
     }
   })
 }
 
-export function findServiceUserById(db: PrismaTransaction, id: string) {
-  return db.serviceUser.findUnique({
-    where: { id }
-  })
-}
-
-export function findHrEmployeeByEmpId(db: PrismaTransaction, empid: string) {
-  return db.hrEmployeeBasicInfo.findUnique({
-    where: { empid }
-  })
-}
-
-export function upsertServiceUserReference(
+export function createEmployeeShare(
   db: PrismaTransaction,
   data: {
-    id: string
     employeeId: string
   }
 ) {
-  return db.serviceUser.upsert({
-    where: {
-      id: data.id
-    },
-    create: {
-      id: data.id,
-      employeeId: data.employeeId
-    },
-    update: {
+  return db.employeeShare.create({
+    data: {
       employeeId: data.employeeId
     }
   })
 }
 
-export function upsertHrEmployeeReference(
+export function reactivateEmployeeShare(
   db: PrismaTransaction,
+  id: string,
   data: {
-    empid: string
-    employeeName?: string | null
-  }
-) {
-  const employeeName = data.employeeName?.trim() || null
-
-  return db.hrEmployeeBasicInfo.upsert({
-    where: {
-      empid: data.empid
-    },
-    create: {
-      empid: data.empid,
-      name: employeeName,
-      surname: null
-    },
-    update: employeeName
-      ? {
-          name: employeeName
-        }
-      : {}
-  })
-}
-
-export function upsertEmployeeShare(
-  db: PrismaTransaction,
-  data: {
-    userId: string
     employeeId: string
-    employeeName: string
-    pointBalance: number | null
   }
 ) {
-  return db.employeeShare.upsert({
+  return db.employeeShare.update({
     where: {
-      userId: data.userId
+      id
     },
-    create: {
-      userId: data.userId,
+    data: {
       employeeId: data.employeeId,
-      employeeName: data.employeeName,
-      pointBalance: data.pointBalance
-    },
-    update: {
-      employeeId: data.employeeId,
-      employeeName: data.employeeName,
-      pointBalance: data.pointBalance,
       deletedAt: null
-    },
-    include: {
-      employee: true
     }
   })
 }
@@ -141,22 +81,6 @@ export function updateEmployeeDownloadOs(
     },
     data: {
       os
-    }
-  })
-}
-
-export function verifyActiveEmployeeDownloadByReceiver(
-  db: PrismaTransaction,
-  recieverEmpId: string
-) {
-  return db.employeeDownload.updateMany({
-    where: {
-      recieverEmpId,
-      ...activeRecord
-    },
-    data: {
-      verificationStatus: 'verified',
-      verifiedAt: new Date()
     }
   })
 }
@@ -196,12 +120,7 @@ export function findRecentActiveEmployeeDownloads(
     take,
     skip,
     include: {
-      receiverEmployee: true,
-      share: {
-        include: {
-          employee: true
-        }
-      }
+      share: true
     }
   })
 }
@@ -218,12 +137,7 @@ export function findActiveEmployeeDownloadsForExport(
     },
     take,
     include: {
-      receiverEmployee: true,
-      share: {
-        include: {
-          employee: true
-        }
-      }
+      share: true
     }
   })
 }
@@ -240,12 +154,7 @@ export function findFirstActiveEmployeeDownloads(
     },
     take,
     include: {
-      receiverEmployee: true,
-      share: {
-        include: {
-          employee: true
-        }
-      }
+      share: true
     }
   })
 }
@@ -285,9 +194,6 @@ export function findActiveEmployeeSharesByIds(db: PrismaTransaction, ids: string
         in: ids
       },
       ...activeRecord
-    },
-    include: {
-      employee: true
     }
   })
 }

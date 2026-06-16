@@ -4,10 +4,7 @@ import deltaHiBannerUrl from "~/assets/img/DeltaHi Banner.svg";
 
 type EmployeeShare = {
   id: string;
-  userId: string;
   employeeId: string;
-  employeeName: string;
-  pointBalance: number | null;
   shareUrl: string;
   createdAt: string;
   updatedAt: string;
@@ -21,16 +18,7 @@ type CheckUserResponse = {
   status: number;
   message: string;
   data: null | {
-    id: string;
     employee_id: string;
-    point_balance?: number | string | null;
-    pointBalance?: number | string | null;
-    employee_info?: {
-      name?: string | null;
-      surname?: string | null;
-      full_name?: string | null;
-      full_name_th?: string | null;
-    } | null;
   };
 };
 
@@ -76,18 +64,7 @@ const currentLanguageOption = computed(
     languageOptions[1],
 );
 
-const config = useRuntimeConfig();
-const checkUserUrl = computed(() => {
-  const deltahiApiBaseUrl = String(
-    config.public.deltahiApiBaseUrl || "",
-  ).trim();
-
-  if (!deltahiApiBaseUrl) {
-    return "/api/friend-get-friend/check-user";
-  }
-
-  return buildApiUrl(deltahiApiBaseUrl, "/friend-get-friend/check-user");
-});
+const checkUserUrl = "/api/friend-get-friend/check-user";
 
 const formErrorText = computed(() => {
   if (!formError.value) {
@@ -122,24 +99,6 @@ function getStatusMessage(error: unknown): LocalizedMessage | string {
   }
 
   return { key: "qrPage.errors.unavailable" };
-}
-
-function buildApiUrl(baseUrl: string, path: string) {
-  return `${baseUrl.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
-}
-
-function getCheckUserEmployeeName(data: CheckUserResponse["data"]) {
-  const employeeInfo = data?.employee_info;
-
-  return (
-    employeeInfo?.full_name?.trim() ||
-    [employeeInfo?.name, employeeInfo?.surname]
-      .filter(Boolean)
-      .join(" ")
-      .trim() ||
-    employeeInfo?.full_name_th?.trim() ||
-    null
-  );
 }
 
 function toggleLanguageMenu() {
@@ -188,14 +147,14 @@ async function submitReferrerEmployeeId() {
   isCreatingShare.value = true;
 
   try {
-    const response = await $fetch<CheckUserResponse>(checkUserUrl.value, {
+    const response = await $fetch<CheckUserResponse>(checkUserUrl, {
       query: {
         employee_id: normalizedReferrerEmployeeId.value,
       },
     });
 
-    if (!response.data?.id || !response.data.employee_id) {
-      throw new Error("User was not found.");
+    if (!response.data?.employee_id) {
+      throw new Error("Employee ID is unavailable.");
     }
 
     const { share } = await $fetch<GetEmployeeShareResponse>(
@@ -203,11 +162,7 @@ async function submitReferrerEmployeeId() {
       {
         method: "POST",
         body: {
-          userId: response.data.id,
           employeeId: response.data.employee_id,
-          employeeName: getCheckUserEmployeeName(response.data),
-          pointBalance:
-            response.data.point_balance ?? response.data.pointBalance ?? null,
         },
       },
     );
@@ -314,7 +269,7 @@ watch(referrerEmployeeId, () => {
               {{ t("shareApp.employeeId.label") }}
             </span>
             <input
-              v-model="referrerEmployeeId"
+              v-model.trim="referrerEmployeeId"
               type="text"
               inputmode="text"
               autocomplete="off"

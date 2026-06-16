@@ -2,18 +2,16 @@ import { Prisma } from '@prisma/client'
 import { createError } from 'h3'
 import type { CreateEmployeeDownloadInput, CreateEmployeeShareInput } from '../../shared/schemas/referral'
 import {
+  createEmployeeShare,
   createEmployeeDownload,
   findActiveEmployeeDownloadByReceiver,
   findActiveEmployeeShareById,
-  findHrEmployeeByEmpId,
-  upsertHrEmployeeReference,
-  upsertServiceUserReference,
+  findEmployeeShareByEmployeeId,
+  reactivateEmployeeShare,
   updateEmployeeDownloadOs,
-  verifyActiveEmployeeDownloadByReceiver,
-  upsertEmployeeShare
 } from '../repositories/referralRepository'
 import { prisma } from '../utils/prisma'
-import { getEmployeeDisplayName, toPublicEmployeeDownload, toPublicEmployeeShare } from '../utils/referral'
+import { toPublicEmployeeDownload, toPublicEmployeeShare } from '../utils/referral'
 
 export async function getEmployeeShare(shareId: string, siteUrl: string) {
   const share = await findActiveEmployeeShareById(prisma, shareId)
@@ -30,22 +28,13 @@ export async function getEmployeeShare(shareId: string, siteUrl: string) {
 
 export async function createOrUpdateEmployeeShare(input: CreateEmployeeShareInput, siteUrl: string) {
   const share = await prisma.$transaction(async (tx) => {
-    const [, employee] = await Promise.all([
-      upsertServiceUserReference(tx, {
-        id: input.userId,
-        employeeId: input.employeeId
-      }),
-      upsertHrEmployeeReference(tx, {
-        empid: input.employeeId,
-        employeeName: input.employeeName
-      })
-    ])
+    const existingShare = await findEmployeeShareByEmployeeId(tx, input.employeeId)
 
-    return upsertEmployeeShare(tx, {
-      ...input,
-      employeeName: input.employeeName?.trim() || getEmployeeDisplayName(employee) || input.employeeId,
-      pointBalance: input.pointBalance
-    })
+    if (existingShare) {
+      return reactivateEmployeeShare(tx, existingShare.id, input)
+    }
+
+    return createEmployeeShare(tx, input)
   })
 
   return toPublicEmployeeShare(share, siteUrl)
@@ -66,15 +55,6 @@ export async function recordEmployeeDownload(input: CreateEmployeeDownloadInput)
       throw createError({
         statusCode: 400,
         statusMessage: 'Referrer cannot submit their own employee ID.'
-      })
-    }
-
-    const receiverEmployee = await findHrEmployeeByEmpId(tx, input.recieverEmpId)
-
-    if (!receiverEmployee) {
-      throw createError({
-        statusCode: 404,
-        statusMessage: 'Receiver employee ID was not found.'
       })
     }
 
@@ -110,29 +90,4 @@ export async function recordEmployeeDownload(input: CreateEmployeeDownloadInput)
   })
 
   return toPublicEmployeeDownload(download)
-}
-
-export async function verifyRegisteredReceiver(employeeId: string) {
-  const normalizedEmployeeId = employeeId.trim().toUpperCase()
-
-  if (!normalizedEmployeeId) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: 'Employee ID is required.'
-    })
-  }
-
-  const result = await verifyActiveEmployeeDownloadByReceiver(prisma, normalizedEmployeeId)
-
-  if (!result.count) {
-    throw createError({
-      statusCode: 404,
-      statusMessage: 'Download record was not found.'
-    })
-  }
-
-  return {
-    employeeId: normalizedEmployeeId,
-    verificationStatus: 'verified' as const
-  }
 }
