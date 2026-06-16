@@ -10,8 +10,8 @@
       "subtitle": "กรอกรหัสพนักงานของคุณเพื่อสร้าง QR code สำหรับส่งต่อให้เพื่อน",
       "action": "สร้าง QR Code",
       "checking": "กำลังตรวจสอบ...",
-      "checkingTitle": "กำลังตรวจสอบรหัสพนักงาน",
-      "checkingDescription": "โปรดรอสักครู่ ระบบกำลังตรวจสอบรหัสพนักงานและเตรียม QR code ของคุณ"
+      "checkingTitle": "กำลังเตรียม QR แนะนำ",
+      "checkingDescription": "โปรดรอสักครู่ ระบบกำลังเตรียม QR code ของคุณ"
     },
     "errors": {
       "enterEmployeeId": "กรุณากรอกรหัสพนักงานเพื่อสร้าง QR code ของคุณ",
@@ -30,25 +30,15 @@
     "status": {
       "checkingReferral": "กำลังตรวจสอบลิงก์แนะนำ...",
       "invalidReferral": "ลิงก์แนะนำไม่ถูกต้องหรือหมดอายุแล้ว",
-      "sharedBy": "แชร์โดยพนักงาน {employeeId}",
-      "sharedByName": "แชร์โดย {name} ({employeeId})"
+      "sharedBy": "แชร์โดยพนักงาน {employeeId}"
     },
     "employeeId": {
       "label": "รหัสพนักงาน",
-      "placeholder": "ตัวอย่าง: EMP006"
-    },
-    "employeeLookup": {
-      "checking": "กำลังตรวจสอบรหัสพนักงาน...",
-      "verified": "ยืนยันพนักงานแล้ว: {name}",
-      "notFoundContinue": "ไม่พบรหัสพนักงาน {employeeId} คุณยังสามารถดำเนินการต่อเพื่อดาวน์โหลดได้",
-      "verifyErrorContinue": "ไม่สามารถตรวจสอบรหัสพนักงานนี้ได้ในขณะนี้ คุณยังสามารถดำเนินการต่อเพื่อดาวน์โหลดได้",
-      "verifyErrorDownload": "ไม่สามารถตรวจสอบรหัสพนักงานนี้ได้ในขณะนี้ คุณยังสามารถดาวน์โหลดแอปได้",
-      "notFoundDownload": "ไม่พบรหัสพนักงาน {employeeId} ดำเนินการต่อโดยไม่บันทึกการแนะนำ"
+      "placeholder": "ตัวอย่าง: XXXXXXXX"
     },
     "actions": {
       "saving": "กำลังบันทึก...",
       "continue": "ดำเนินการต่อ",
-      "verifyContinue": "ยืนยันและดำเนินการต่อ",
       "close": "ปิด",
       "closeDownloadPopup": "ปิดหน้าต่างดาวน์โหลด",
       "opening": "กำลังเปิด...",
@@ -62,8 +52,8 @@
       "downloadApp": "ดาวน์โหลดแอป"
     },
     "verifyCard": {
-      "title": "ยืนยันการแนะนำของคุณ",
-      "description": "กรอกรหัสพนักงานของคุณเพื่อยืนยันการแนะนำก่อนดาวน์โหลดแอป"
+      "title": "กรอกรหัสพนักงานของคุณ",
+      "description": "ใช้รหัสพนักงานของคุณก่อนดาวน์โหลดแอป"
     },
     "help": {
       "title": "ต้องการความช่วยเหลือ?",

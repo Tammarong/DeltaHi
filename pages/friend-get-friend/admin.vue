@@ -11,7 +11,6 @@ type DashboardDownload = {
   referrerEmpId: string;
   os: string;
   downloadedAt: string;
-  status: "Verified" | "Unverified";
 };
 
 type DashboardPioneer = {
@@ -36,9 +35,9 @@ type DashboardWinner = {
 type AdminDashboardResponse = {
   stats: {
     totalDownloads: number;
-    allUsersFromApp: number;
-    newUsers: number;
-    campaignUsers: number;
+    recordedReferrals: number;
+    recordedReceivers: number;
+    activeReferrers: number;
     first38Users: number;
     pioneerSlots: number;
     avgRefers: number;
@@ -58,7 +57,6 @@ const searchQuery = ref("");
 const debouncedSearchQuery = ref("");
 let searchDebounceTimer: ReturnType<typeof setTimeout> | undefined;
 const osFilter = ref<"all" | "ios" | "android" | "unknown">("all");
-const verificationStatusFilter = ref<"all" | "verified" | "unverified">("all");
 const dateFromFilter = ref("");
 const dateToFilter = ref("");
 const currentPage = ref(1);
@@ -78,10 +76,6 @@ const dashboardQuery = computed(() => ({
   pageSize,
   search: debouncedSearchQuery.value.trim() || undefined,
   os: osFilter.value === "all" ? undefined : osFilter.value,
-  verificationStatus:
-    verificationStatusFilter.value === "all"
-      ? undefined
-      : verificationStatusFilter.value,
   dateFrom: dateFromFilter.value || undefined,
   dateTo: dateToFilter.value || undefined,
 }));
@@ -100,9 +94,9 @@ const stats = computed(
   () =>
     dashboard.value?.stats ?? {
       totalDownloads: 0,
-      allUsersFromApp: 0,
-      newUsers: 0,
-      campaignUsers: 0,
+      recordedReferrals: 0,
+      recordedReceivers: 0,
+      activeReferrers: 0,
       first38Users: 0,
       pioneerSlots: 38,
       avgRefers: 0,
@@ -123,25 +117,25 @@ const first38Progress = computed(() => {
 const statCards = computed(() => {
   return [
     {
-      label: "All Users From App",
-      value: numberFormatter.format(stats.value.allUsersFromApp),
-      helper: "Mock total from app",
+      label: "Total Downloads",
+      value: numberFormatter.format(stats.value.totalDownloads),
+      helper: "Saved records",
       tone: "blue",
-      icon: "app",
+      icon: "download",
     },
     {
-      label: "New User",
-      value: numberFormatter.format(stats.value.newUsers),
-      helper: "Verified users only",
+      label: "Recorded Receivers",
+      value: numberFormatter.format(stats.value.recordedReceivers),
+      helper: "Unique employee IDs",
       tone: "green",
       icon: "user",
     },
     {
-      label: "New User From Campaign",
-      value: numberFormatter.format(stats.value.campaignUsers),
-      helper: "Verified + unverified",
+      label: "Active Referrers",
+      value: numberFormatter.format(stats.value.activeReferrers),
+      helper: "Shares with records",
       tone: "blue",
-      icon: "download",
+      icon: "app",
     },
     {
       label: "Top 38",
@@ -178,7 +172,6 @@ const hasActiveFilters = computed(
   () =>
     Boolean(debouncedSearchQuery.value.trim()) ||
     osFilter.value !== "all" ||
-    verificationStatusFilter.value !== "all" ||
     Boolean(dateFromFilter.value) ||
     Boolean(dateToFilter.value),
 );
@@ -253,13 +246,7 @@ watch(searchQuery, (value) => {
 });
 
 watch(
-  [
-    debouncedSearchQuery,
-    osFilter,
-    verificationStatusFilter,
-    dateFromFilter,
-    dateToFilter,
-  ],
+  [debouncedSearchQuery, osFilter, dateFromFilter, dateToFilter],
   () => {
     const isAlreadyFirstPage = currentPage.value === 1;
 
@@ -333,7 +320,6 @@ async function resetFilters() {
   searchQuery.value = "";
   debouncedSearchQuery.value = "";
   osFilter.value = "all";
-  verificationStatusFilter.value = "all";
   dateFromFilter.value = "";
   dateToFilter.value = "";
   currentPage.value = 1;
@@ -354,10 +340,6 @@ function exportCsv() {
 
   if (osFilter.value !== "all") {
     params.set("os", osFilter.value);
-  }
-
-  if (verificationStatusFilter.value !== "all") {
-    params.set("verificationStatus", verificationStatusFilter.value);
   }
 
   if (dateFromFilter.value) {
@@ -587,7 +569,7 @@ useHead({
             class="rounded-lg border border-[#d7e2ec] bg-white p-4 shadow-[0_1px_2px_rgba(23,50,77,0.06)]"
           >
             <div
-              class="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(240px,1.2fr)_118px_142px_140px_140px] xl:items-end"
+              class="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(240px,1.2fr)_118px_140px_140px] xl:items-end"
             >
               <label class="min-w-0">
                 <span
@@ -636,21 +618,6 @@ useHead({
               <label class="min-w-0">
                 <span
                   class="mb-1 block text-[10px] font-extrabold uppercase text-[#5a6b7c]"
-                  >Status</span
-                >
-                <select
-                  v-model="verificationStatusFilter"
-                  class="h-10 w-full rounded-md border border-[#c9d8e8] bg-[#f7fbff] px-3 text-xs font-bold text-[#17324d] outline-none transition focus:border-[#008bd2] focus:bg-white focus:ring-2 focus:ring-[#dff1fb]"
-                >
-                  <option value="all">All Status</option>
-                  <option value="verified">Verified</option>
-                  <option value="unverified">Unverified</option>
-                </select>
-              </label>
-
-              <label class="min-w-0">
-                <span
-                  class="mb-1 block text-[10px] font-extrabold uppercase text-[#5a6b7c]"
                   >From</span
                 >
                 <input
@@ -681,7 +648,7 @@ useHead({
               class="flex items-center justify-between gap-4 border-b border-[#d7e2ec] px-5 py-5"
             >
               <h2 class="text-lg font-extrabold text-[#17324d]">
-                New User Records
+                Referral Records
               </h2>
               <div class="flex shrink-0 items-center gap-2">
                 <button
@@ -746,7 +713,7 @@ useHead({
                   pending ? 'opacity-70 blur-[0.5px]' : 'opacity-100 blur-0'
                 "
               >
-                <table class="min-w-[780px] text-left text-xs">
+                <table class="min-w-[680px] text-left text-xs">
                   <thead
                     class="bg-[#f4f8fb] text-[11px] font-extrabold uppercase tracking-wide text-[#5a6b7c]"
                   >
@@ -757,7 +724,6 @@ useHead({
                       <th class="w-28 px-3 py-4">Referrer ID</th>
                       <th class="w-24 px-3 py-4">OS</th>
                       <th class="w-40 px-3 py-4">Downloaded At</th>
-                      <th class="w-28 px-3 py-4">Status</th>
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-[#d7e2ec]">
@@ -784,22 +750,10 @@ useHead({
                       <td class="px-3 py-4 font-semibold text-[#17324d]">
                         {{ formatDownloadedAt(row.downloadedAt) }}
                       </td>
-                      <td class="px-3 py-4">
-                        <span
-                          class="rounded-full px-2 py-1 text-[11px] font-bold"
-                          :class="
-                            row.status === 'Verified'
-                              ? 'bg-[#e7f6ed] text-[#128041]'
-                              : 'bg-[#fff7df] text-[#b77900]'
-                          "
-                        >
-                          {{ row.status }}
-                        </span>
-                      </td>
                     </tr>
                     <tr v-if="!activityRows.length" class="bg-white">
                       <td
-                        colspan="7"
+                        colspan="6"
                         class="px-5 py-8 text-center text-sm font-semibold text-[#5a6b7c]"
                       >
                         No download records found.

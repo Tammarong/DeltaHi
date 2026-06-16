@@ -1,28 +1,27 @@
 import { employeeIdSchema } from '../../../shared/schemas/referral'
-import { findHrEmployeeByEmpId } from '../../repositories/referralRepository'
-import { prisma } from '../../utils/prisma'
+import { assertRateLimit } from '../../utils/rateLimit'
 
 export default defineEventHandler(async (event) => {
+  assertRateLimit(event, {
+    keyPrefix: 'employees',
+    limit: 120,
+    windowMs: 60_000
+  })
+
   const parsedEmployeeId = employeeIdSchema.safeParse(getRouterParam(event, 'employeeId'))
 
   if (!parsedEmployeeId.success) {
     return { employee: null }
   }
 
-  const employee = await findHrEmployeeByEmpId(prisma, parsedEmployeeId.data)
-
-  if (!employee) {
-    return { employee: null }
-  }
-
-  const displayName = [employee.name, employee.surname].filter(Boolean).join(' ').trim()
+  const employeeId = parsedEmployeeId.data
 
   return {
     employee: {
-      empid: employee.empid,
-      name: employee.name,
-      surname: employee.surname,
-      displayName: displayName || employee.empid
+      empid: employeeId,
+      name: null,
+      surname: null,
+      displayName: employeeId
     }
   }
 })

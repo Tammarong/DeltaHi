@@ -8,15 +8,14 @@ Main flow:
 
 1. Referrer opens `/friend-get-friend/user_Id`.
 2. Referrer enters their employee ID.
-3. The page checks the employee ID with `/api/friend-get-friend/check-user`.
-4. The page creates or reuses the employee share, then sends the referrer to `/friend-get-friend/qr-code?employeeShareId=[employee_share.id]`.
+3. The page checks and normalizes the employee ID with `/api/friend-get-friend/check-user`.
+4. The page creates or reuses the local employee share by employee ID, then sends the referrer to `/friend-get-friend/qr-code?employeeShareId=[employee_share.id]`.
 5. The QR page renders a QR for `/friend-get-friend/shareapp/[employee_share.id]`.
 6. New user opens `/friend-get-friend/shareapp/[employee_share.id]`.
 7. New user enters employee ID.
-8. New user lands on `/download`.
-9. If the employee ID exists in HR data, the download page shows the employee name.
-10. System saves an `employee_download` record when a verified employee clicks Download App.
-11. If the employee ID is not found, the new user can still download the app, but no `employee_download` row is saved.
+8. New user opens the in-page download popup.
+9. System saves an `employee_download` record when the receiver clicks Download App and passes referral guards.
+10. Employee IDs are recorded directly; no local HR/reference lookup is required.
 
 Optional help flow:
 
@@ -33,6 +32,10 @@ This app owns only:
 - `employee_download`
 
 It does not create or mutate `point_ledger`; rewards are owned by the main database.
+It also does not wait for or process app registration callbacks. The campaign
+dashboard is based on saved referral download records only.
+The app no longer stores or depends on local `service_user.users` or
+`dbo.v_HR_EXP_EmpBasicInfo` reference tables.
 
 `employee_share.id` is the referral identifier used in links:
 
@@ -40,15 +43,21 @@ It does not create or mutate `point_ledger`; rewards are owned by the main datab
 https://deltahi.vercel.io/friend-get-friend/shareapp/{{id}}
 ```
 
-The local schema keeps a foreign key from `employee_share.user_id` to the existing
-`service_user.users.id` table. The app does not model or own that external table.
+`prisma/example-data.sql` intentionally clears local example rows and does not
+insert mock people/share/download data.
 
-It also references existing HR employee data:
+## Public API Rate Limits
 
-- `dbo.v_HR_EXP_EmpBasicInfo.empid` -> `employee_share.employee_id`
-- `dbo.v_HR_EXP_EmpBasicInfo.empid` -> `employee_download.reciever_emp_id`
+The public referral APIs have a basic per-client-IP in-memory rate limit:
 
-Example rows for all referenced tables are in `prisma/example-data.sql`.
+- `GET /api/friend-get-friend/check-user`: 30/min
+- `POST /api/employee-shares`: 20/min
+- `POST /api/downloads`: 60/min
+- `GET /api/shares/[shareId]`: 120/min
+- `GET /api/employees/[employeeId]`: 120/min
+
+Blocked requests return `429 Too Many Requests` with `Retry-After` and
+`X-RateLimit-*` headers.
 
 ## Setup
 
@@ -59,8 +68,9 @@ npm run db:setup
 npm run dev
 ```
 
-`db:setup` starts local Postgres, pushes the Prisma schema, and loads
-`prisma/example-data.sql`.
+`db:setup` starts local Postgres, pushes the Prisma schema, and runs
+`prisma/example-data.sql` to clear any local example rows. It does not insert
+sample records.
 
 If Nuxt dev server reports a generated alias error such as `#app-manifest`,
 restart it with a clean generated cache:
@@ -85,11 +95,10 @@ PostgreSQL locally, then point `.env` at that database:
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/friends_get_friends"
 ```
 
-Create the database and local reference schemas:
+Create the database:
 
 ```bash
 createdb -U postgres friends_get_friends
-psql -U postgres -d friends_get_friends -f prisma/local-reference-schema.sql
 ```
 
 Then run Prisma directly:
@@ -122,7 +131,7 @@ Test-NetConnection localhost -Port 5432
 If `TcpTestSucceeded` is `False`, start your local PostgreSQL service or update
 `DATABASE_URL` to point to a reachable PostgreSQL server.
 
-`prisma/example-data.sql` resets local sample data. Do not run it against a
+`prisma/example-data.sql` clears local sample data. Do not run it against a
 shared or production database.
 
 If you already started the local database before `prisma/local-reference-schema.sql`

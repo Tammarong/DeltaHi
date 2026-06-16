@@ -36,36 +36,16 @@ const showDownloadDialog = ref(false);
 const hasStartedDownload = ref(false);
 const languageMenuOpen = ref(false);
 const downloadStep = ref<TutorialStep>("download");
-const employeeLookupDelayMs = 400;
 const normalizedEmployeeId = computed(() =>
   employeeId.value.trim().toUpperCase(),
 );
 const downloadUrl = computed(() =>
   String(config.public.downloadUrl || "").trim(),
 );
-const receiverEmployee = ref<EmployeeLookupResponse["employee"]>(null);
-const receiverLookupStatus = ref<
-  "idle" | "checking" | "found" | "not-found" | "error"
->("idle");
-const lastLookedUpEmployeeId = ref("");
 const downloadReceiverEmpId = ref("");
-const downloadReceiverEmployee = ref<EmployeeLookupResponse["employee"]>(null);
-const downloadReceiverLookupStatus = ref<"found" | "not-found" | "error">(
-  "not-found",
-);
 const isDownloadStepActive = computed(
   () => showDownloadDialog.value || hasStartedDownload.value,
 );
-let employeeLookupTimeout: ReturnType<typeof setTimeout> | undefined;
-
-type EmployeeLookupResponse = {
-  employee: null | {
-    empid: string;
-    name: string | null;
-    surname: string | null;
-    displayName: string;
-  };
-};
 
 const languageOptions: Array<{
   code: AvailableLocale;
@@ -127,88 +107,8 @@ const actionErrorText = computed(() =>
     : "",
 );
 
-function resetEmployeeLookup() {
-  receiverEmployee.value = null;
-  receiverLookupStatus.value = "idle";
-  lastLookedUpEmployeeId.value = "";
-}
-
-async function lookupEmployeeById(employeeIdToLookup: string) {
-  if (!employeeIdToLookup) {
-    resetEmployeeLookup();
-    return null;
-  }
-
-  receiverLookupStatus.value = "checking";
-
-  try {
-    const { employee } = await $fetch<EmployeeLookupResponse>(
-      `/api/employees/${encodeURIComponent(employeeIdToLookup)}`,
-    );
-
-    if (normalizedEmployeeId.value !== employeeIdToLookup) {
-      return receiverEmployee.value;
-    }
-
-    receiverEmployee.value = employee;
-    receiverLookupStatus.value = employee ? "found" : "not-found";
-    lastLookedUpEmployeeId.value = employeeIdToLookup;
-
-    return employee;
-  } catch {
-    if (normalizedEmployeeId.value === employeeIdToLookup) {
-      receiverEmployee.value = null;
-      receiverLookupStatus.value = "error";
-      lastLookedUpEmployeeId.value = employeeIdToLookup;
-    }
-
-    return null;
-  }
-}
-
-async function getCurrentEmployeeLookup() {
-  if (!normalizedEmployeeId.value) {
-    return null;
-  }
-
-  if (lastLookedUpEmployeeId.value === normalizedEmployeeId.value) {
-    return receiverEmployee.value;
-  }
-
-  if (employeeLookupTimeout) {
-    clearTimeout(employeeLookupTimeout);
-  }
-
-  return await lookupEmployeeById(normalizedEmployeeId.value);
-}
-
 watch(employeeId, () => {
   formError.value = null;
-
-  if (employeeLookupTimeout) {
-    clearTimeout(employeeLookupTimeout);
-  }
-
-  const employeeIdToLookup = normalizedEmployeeId.value;
-
-  if (!employeeIdToLookup) {
-    resetEmployeeLookup();
-    return;
-  }
-
-  receiverEmployee.value = null;
-  receiverLookupStatus.value = "checking";
-  lastLookedUpEmployeeId.value = "";
-
-  employeeLookupTimeout = setTimeout(() => {
-    void lookupEmployeeById(employeeIdToLookup);
-  }, employeeLookupDelayMs);
-});
-
-onBeforeUnmount(() => {
-  if (employeeLookupTimeout) {
-    clearTimeout(employeeLookupTimeout);
-  }
 });
 
 function getStatusCode(error: unknown) {
@@ -353,26 +253,24 @@ async function downloadApp() {
     hasStartedDownload.value = true;
     const detectedOs = getDownloadOs();
 
-    if (downloadReceiverEmployee.value) {
-      if (!shareId.value) {
-        actionError.value = { key: "shareApp.errors.validReferralAndEmployee" };
-        return;
-      }
+    if (!shareId.value) {
+      actionError.value = { key: "shareApp.errors.validReferralAndEmployee" };
+      return;
+    }
 
-      try {
-        await $fetch("/api/downloads", {
-          method: "POST",
-          body: {
-            employeeShareId: shareId.value,
-            recieverEmpId: downloadReceiverEmpId.value,
-            os: detectedOs,
-          },
-        });
-      } catch (recordError) {
-        if (![400, 404, 409].includes(getStatusCode(recordError))) {
-          actionError.value = getActionErrorMessage(recordError);
-          return;
-        }
+    try {
+      await $fetch("/api/downloads", {
+        method: "POST",
+        body: {
+          employeeShareId: shareId.value,
+          recieverEmpId: downloadReceiverEmpId.value,
+          os: detectedOs,
+        },
+      });
+    } catch (recordError) {
+      if (![400, 404, 409].includes(getStatusCode(recordError))) {
+        actionError.value = getActionErrorMessage(recordError);
+        return;
       }
     }
 
@@ -395,16 +293,7 @@ async function submitEmployeeId() {
       return;
     }
 
-    const employee = await getCurrentEmployeeLookup();
-
     downloadReceiverEmpId.value = normalizedEmployeeId.value;
-    downloadReceiverEmployee.value = employee;
-    downloadReceiverLookupStatus.value =
-      receiverLookupStatus.value === "error"
-        ? "error"
-        : employee
-          ? "found"
-          : "not-found";
     downloadStep.value = "download";
     showDownloadDialog.value = true;
   } catch {
@@ -555,14 +444,9 @@ async function submitEmployeeId() {
             class="rounded-md bg-slate-50 p-3 text-sm text-slate-600"
           >
             {{
-              shareResponse.share.employeeName
-                ? t("shareApp.status.sharedByName", {
-                    employeeId: shareResponse.share.employeeId,
-                    name: shareResponse.share.employeeName,
-                  })
-                : t("shareApp.status.sharedBy", {
-                    employeeId: shareResponse.share.employeeId,
-                  })
+              t("shareApp.status.sharedBy", {
+                employeeId: shareResponse.share.employeeId,
+              })
             }}
           </div>
 
@@ -571,7 +455,7 @@ async function submitEmployeeId() {
               t("shareApp.employeeId.label")
             }}</span>
             <input
-              v-model="employeeId"
+              v-model.trim="employeeId"
               type="text"
               inputmode="text"
               autocomplete="off"
@@ -579,55 +463,6 @@ async function submitEmployeeId() {
               :placeholder="t('shareApp.employeeId.placeholder')"
             />
           </label>
-
-          <div
-            v-if="receiverLookupStatus === 'checking'"
-            class="rounded-md bg-slate-50 p-3 text-sm text-slate-600"
-          >
-            {{ t("shareApp.employeeLookup.checking") }}
-          </div>
-          <div
-            v-else-if="receiverLookupStatus === 'found' && receiverEmployee"
-            class="flex items-center gap-3 rounded-md bg-emerald-50 p-3 text-sm font-medium text-emerald-800"
-          >
-            <span
-              class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white"
-            >
-              <svg
-                class="h-4 w-4"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.8"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <path d="m6 12 4 4 8-8" />
-              </svg>
-            </span>
-            <span>{{
-              t("shareApp.employeeLookup.verified", {
-                name: receiverEmployee.displayName,
-              })
-            }}</span>
-          </div>
-          <div
-            v-else-if="receiverLookupStatus === 'not-found'"
-            class="rounded-md bg-amber-50 p-3 text-sm text-amber-800"
-          >
-            {{
-              t("shareApp.employeeLookup.notFoundContinue", {
-                employeeId: normalizedEmployeeId,
-              })
-            }}
-          </div>
-          <div
-            v-else-if="receiverLookupStatus === 'error'"
-            class="rounded-md bg-amber-50 p-3 text-sm text-amber-800"
-          >
-            {{ t("shareApp.employeeLookup.verifyErrorContinue") }}
-          </div>
 
           <p
             v-if="formErrorText"
@@ -644,7 +479,7 @@ async function submitEmployeeId() {
             {{
               isSubmitting
                 ? t("shareApp.actions.saving")
-                : t("shareApp.actions.verifyContinue")
+                : t("shareApp.actions.continue")
             }}
           </button>
         </form>
@@ -735,35 +570,6 @@ async function submitEmployeeId() {
           <p class="mt-3 text-sm leading-6 text-slate-600">
             {{ t("shareApp.dialog.instructions") }}
           </p>
-          <div
-            v-if="
-              downloadReceiverLookupStatus === 'found' &&
-              downloadReceiverEmployee
-            "
-            class="mt-5 rounded-md bg-emerald-50 p-3 text-sm text-emerald-800"
-          >
-            {{
-              t("shareApp.employeeLookup.verified", {
-                name: downloadReceiverEmployee.displayName,
-              })
-            }}
-          </div>
-          <div
-            v-else-if="downloadReceiverLookupStatus === 'error'"
-            class="mt-5 rounded-md bg-amber-50 p-3 text-sm text-amber-800"
-          >
-            {{ t("shareApp.employeeLookup.verifyErrorDownload") }}
-          </div>
-          <div
-            v-else
-            class="mt-5 rounded-md bg-amber-50 p-3 text-sm text-amber-800"
-          >
-            {{
-              t("shareApp.employeeLookup.notFoundDownload", {
-                employeeId: downloadReceiverEmpId,
-              })
-            }}
-          </div>
 
           <button
             type="button"

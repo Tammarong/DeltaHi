@@ -10,8 +10,8 @@
       "subtitle": "Enter your employee ID to generate a QR code for your friends.",
       "action": "Generate QR Code",
       "checking": "Checking...",
-      "checkingTitle": "Checking employee ID",
-      "checkingDescription": "Please wait while we verify your employee ID and prepare your QR code."
+      "checkingTitle": "Preparing referral QR",
+      "checkingDescription": "Please wait while we prepare your QR code."
     },
     "errors": {
       "enterEmployeeId": "Enter your employee ID to generate your QR code.",
@@ -30,25 +30,15 @@
     "status": {
       "checkingReferral": "Checking referral link...",
       "invalidReferral": "Referral link is invalid or expired.",
-      "sharedBy": "Shared by employee {employeeId}",
-      "sharedByName": "Shared by {name} ({employeeId})"
+      "sharedBy": "Shared by employee {employeeId}"
     },
     "employeeId": {
       "label": "Employee ID",
-      "placeholder": "Example: EMP006"
-    },
-    "employeeLookup": {
-      "checking": "Checking employee ID...",
-      "verified": "Employee verified: {name}",
-      "notFoundContinue": "Employee ID {employeeId} was not found. You can still continue to download.",
-      "verifyErrorContinue": "Unable to verify this employee ID right now. You can still continue to download.",
-      "verifyErrorDownload": "Unable to verify this employee ID right now. You can still download the app.",
-      "notFoundDownload": "Employee ID {employeeId} was not found. You can still download the app, but this referral will not be recorded."
+      "placeholder": "Example: XXXXXXXX"
     },
     "actions": {
       "saving": "Saving...",
       "continue": "Continue",
-      "verifyContinue": "Verify & Continue",
       "close": "Close",
       "closeDownloadPopup": "Close download popup",
       "opening": "Opening...",
@@ -62,8 +52,8 @@
       "downloadApp": "Download App"
     },
     "verifyCard": {
-      "title": "Verify your referral",
-      "description": "Enter your employee ID to verify your referral before downloading the app."
+      "title": "Enter your employee ID",
+      "description": "Use your employee ID before downloading the app."
     },
     "help": {
       "title": "Need help?",

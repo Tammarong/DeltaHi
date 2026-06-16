@@ -31,13 +31,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     /* cspell:words http */
     siteUrl: process.env.NUXT_PUBLIC_SITE_URL,
-    deltahiApiBaseUrl:
-      process.env.DELTAHI_API_BASE_URL ||
-      process.env.NUXT_PUBLIC_DELTAHI_API_BASE_URL,
     public: {
-      deltahiApiBaseUrl:
-        process.env.NUXT_PUBLIC_DELTAHI_API_BASE_URL ||
-        process.env.DELTAHI_API_BASE_URL,
       downloadUrl: process.env.NUXT_PUBLIC_DOWNLOAD_URL
     }
   },

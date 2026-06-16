@@ -1,68 +1,36 @@
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["multiSchema"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas  = ["public", "service_user", "dbo"]
-}
-
-model ServiceUser {
-  id         String          @id @db.Uuid
-  employeeId String          @map("employee_id") @db.VarChar
-  shares     EmployeeShare[]
-
-  @@map("users")
-  @@schema("service_user")
-}
-
-model HrEmployeeBasicInfo {
-  empid     String             @id @db.VarChar
-  name      String?            @db.VarChar
-  surname   String?            @db.VarChar
-  shares    EmployeeShare[]
-  downloads EmployeeDownload[]
-
-  @@map("v_HR_EXP_EmpBasicInfo")
-  @@schema("dbo")
 }
 
 model EmployeeShare {
-  id           String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId       String              @unique @map("user_id") @db.Uuid
-  employeeId   String              @map("employee_id") @db.VarChar
-  employeeName String?             @map("employee_name") @db.VarChar
-  pointBalance Int?                @map("point_balance")
-  createdAt    DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt    DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  deletedAt    DateTime?           @map("deleted_at") @db.Timestamptz(6)
-  downloads    EmployeeDownload[]
-  user         ServiceUser         @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  employee     HrEmployeeBasicInfo @relation(fields: [employeeId], references: [empid], onDelete: Restrict, onUpdate: Cascade)
+  id         String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  employeeId String             @map("employee_id") @db.VarChar
+  createdAt  DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt  DateTime?          @map("deleted_at") @db.Timestamptz(6)
+  downloads  EmployeeDownload[]
 
+  @@index([employeeId])
   @@map("employee_share")
-  @@schema("public")
 }
 
 model EmployeeDownload {
-  id               String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  employeeShareId  String              @map("employee_share_id") @db.Uuid
-  recieverEmpId    String              @map("reciever_emp_id") @db.VarChar
-  os               String              @default("unknown") @db.VarChar(16)
-  verificationStatus String            @default("unverified") @map("verification_status") @db.VarChar(16)
-  verifiedAt       DateTime?           @map("verified_at") @db.Timestamptz(6)
-  createdAt        DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt        DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  deletedAt        DateTime?           @map("deleted_at") @db.Timestamptz(6)
-  share            EmployeeShare       @relation(fields: [employeeShareId], references: [id], onDelete: Restrict)
-  receiverEmployee HrEmployeeBasicInfo @relation(fields: [recieverEmpId], references: [empid], onDelete: Restrict, onUpdate: Cascade)
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  employeeShareId String        @map("employee_share_id") @db.Uuid
+  recieverEmpId   String        @map("reciever_emp_id") @db.VarChar
+  os              String        @default("unknown") @db.VarChar(16)
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt       DateTime?     @map("deleted_at") @db.Timestamptz(6)
+  share           EmployeeShare @relation(fields: [employeeShareId], references: [id], onDelete: Restrict)
 
   @@unique([employeeShareId, recieverEmpId])
   @@index([employeeShareId])
   @@index([recieverEmpId])
-  @@index([verificationStatus])
   @@map("employee_download")
-  @@schema("public")
 }

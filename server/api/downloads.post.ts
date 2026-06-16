@@ -1,7 +1,14 @@
 import { createEmployeeDownloadSchema } from '~/shared/schemas/referral'
 import { recordEmployeeDownload } from '../services/referralService'
+import { assertRateLimit } from '../utils/rateLimit'
 
 export default defineEventHandler(async (event) => {
+  assertRateLimit(event, {
+    keyPrefix: 'downloads',
+    limit: 60,
+    windowMs: 60_000
+  })
+
   const body = await readBody(event)
   const parsedBody = createEmployeeDownloadSchema.safeParse(body)
 
