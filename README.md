@@ -85,6 +85,23 @@ Open Prisma Studio with:
 npm run db:studio
 ```
 
+## Production Deploy Order
+
+1. Create the production Postgres database first, such as Neon.
+2. Set Vercel environment variables:
+   - `DATABASE_URL`
+   - `NUXT_PUBLIC_SITE_URL`
+   - `NUXT_PUBLIC_DOWNLOAD_URL`
+3. Apply migrations with `npx prisma migrate deploy`.
+4. Deploy the Nuxt app to Vercel.
+
+Do not run `npx prisma migrate dev --name init` against Neon/production. That
+command is for local development and uses a shadow database. For deployed
+databases, use `migrate deploy`.
+
+Do not run `npm run db:seed` against production because
+`prisma/example-data.sql` clears referral rows.
+
 ## Setup Without Docker
 
 Prisma does not require Docker. Docker is only used by this project to start the
