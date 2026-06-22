@@ -36,6 +36,7 @@ const showDownloadDialog = ref(false);
 const hasStartedDownload = ref(false);
 const languageMenuOpen = ref(false);
 const downloadStep = ref<TutorialStep>("download");
+const employeeIdInput = ref<HTMLInputElement | null>(null);
 const normalizedEmployeeId = computed(() =>
   employeeId.value.trim().toUpperCase(),
 );
@@ -46,6 +47,18 @@ const downloadReceiverEmpId = ref("");
 const isDownloadStepActive = computed(
   () => showDownloadDialog.value || hasStartedDownload.value,
 );
+const isSelfReferral = computed(() => {
+  const referrerEmployeeId = String(
+    shareResponse.value?.share?.employeeId ?? "",
+  )
+    .trim()
+    .toUpperCase();
+
+  return Boolean(
+    downloadReceiverEmpId.value &&
+      downloadReceiverEmpId.value === referrerEmployeeId,
+  );
+});
 
 const languageOptions: Array<{
   code: AvailableLocale;
@@ -196,6 +209,14 @@ function closeDownloadDialog() {
   showDownloadDialog.value = false;
   downloadStep.value = "download";
   actionError.value = null;
+}
+
+async function editEmployeeId() {
+  closeDownloadDialog();
+  downloadReceiverEmpId.value = "";
+  employeeId.value = "";
+  await nextTick();
+  employeeIdInput.value?.focus();
 }
 
 function chooseOs(os: TutorialOs) {
@@ -455,6 +476,7 @@ async function submitEmployeeId() {
               t("shareApp.employeeId.label")
             }}</span>
             <input
+              ref="employeeIdInput"
               v-model.trim="employeeId"
               type="text"
               inputmode="text"
@@ -571,9 +593,30 @@ async function submitEmployeeId() {
             {{ t("shareApp.dialog.instructions") }}
           </p>
 
+          <div
+            v-if="isSelfReferral"
+            class="mt-4 border-l-4 border-amber-400 bg-amber-100 px-4 py-3 text-sm leading-6 text-slate-900"
+            role="alert"
+          >
+            <p class="font-semibold">
+              {{ t("shareApp.selfReferral.title") }}
+            </p>
+            <p>{{ t("shareApp.selfReferral.description") }}</p>
+          </div>
+
+          <button
+            v-if="isSelfReferral"
+            type="button"
+            class="mt-6 w-full rounded-md border-2 border-brand-600 bg-white px-4 py-3 text-sm font-semibold text-brand-700 transition hover:bg-brand-50"
+            @click="editEmployeeId"
+          >
+            {{ t("shareApp.selfReferral.edit") }}
+          </button>
+
           <button
             type="button"
-            class="mt-6 w-full rounded-md bg-brand-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+            class="w-full rounded-md bg-brand-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+            :class="isSelfReferral ? 'mt-3' : 'mt-6'"
             :disabled="isRecordingClick"
             @click="downloadApp"
           >

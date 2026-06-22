@@ -66,6 +66,11 @@
       "instructions": "Tap Download App to save your referral and install the app.",
       "cannotDownload": "Can't download the app?"
     },
+    "selfReferral": {
+      "title": "The referrer and referee are the same person",
+      "description": "This submission will not be counted as a referral and will not be eligible for referral rewards. You may enter a different referral code or continue with the download.",
+      "edit": "Edit"
+    },
     "tutorial": {
       "label": "Tutorial",
       "choosePhone": "Choose your OS",

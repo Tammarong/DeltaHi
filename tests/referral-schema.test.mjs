@@ -356,6 +356,8 @@ test('download page reads the public download URL from runtime config', () => {
 
 test('share page lets receivers enter employee ID freely before download', () => {
   const sharePage = readProjectFile('pages/friend-get-friend/shareapp/[shareId].vue')
+  const enLocale = readProjectFile('i18n/locales/en.json')
+  const thLocale = readProjectFile('i18n/locales/th.json')
 
   assert.match(sharePage, /downloadReceiverEmpId\.value = normalizedEmployeeId\.value/)
   assert.match(sharePage, /recieverEmpId:\s*downloadReceiverEmpId\.value/)
@@ -372,6 +374,20 @@ test('share page lets receivers enter employee ID freely before download', () =>
   assert.doesNotMatch(sharePage, /employeeLookupDelayMs/)
   assert.doesNotMatch(sharePage, /employeeLookupTimeout/)
   assert.doesNotMatch(sharePage, /lookupEmployeeById/)
+
+  assert.match(sharePage, /const isSelfReferral = computed/)
+  assert.match(sharePage, /downloadReceiverEmpId\.value === referrerEmployeeId/)
+  assert.match(sharePage, /shareApp\.selfReferral\.title/)
+  assert.match(sharePage, /shareApp\.selfReferral\.description/)
+  assert.match(sharePage, /shareApp\.selfReferral\.edit/)
+  assert.match(sharePage, /v-if="isSelfReferral"[\s\S]*role="alert"/)
+  assert.match(sharePage, /border-amber-400 bg-amber-100/)
+  assert.match(sharePage, /async function editEmployeeId\(\)/)
+  assert.match(sharePage, /downloadReceiverEmpId\.value = ["']{2}/)
+  assert.match(sharePage, /employeeId\.value = ["']{2}/)
+  assert.match(sharePage, /@click="editEmployeeId"/)
+  assert.match(enLocale, /The referrer and referee are the same person/)
+  assert.match(thLocale, /พบว่าผู้รับการแนะนำและผู้แนะนำเป็นบุคคลเดียวกัน/)
 })
 
 test('local PostgreSQL setup exists for Prisma Studio', () => {
