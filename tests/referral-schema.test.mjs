@@ -383,6 +383,7 @@ test('share page lets receivers enter employee ID freely before download', () =>
   assert.match(sharePage, /v-if="isSelfReferral"[\s\S]*role="alert"/)
   assert.match(sharePage, /border-amber-400 bg-amber-100/)
   assert.match(sharePage, /async function editEmployeeId\(\)/)
+  assert.match(sharePage, /async function editEmployeeId\(\) \{[\s\S]*hasStartedDownload\.value = false/)
   assert.match(sharePage, /downloadReceiverEmpId\.value = ["']{2}/)
   assert.match(sharePage, /employeeId\.value = ["']{2}/)
   assert.match(sharePage, /@click="editEmployeeId"/)

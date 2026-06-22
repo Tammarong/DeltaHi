@@ -212,7 +212,10 @@ function closeDownloadDialog() {
 }
 
 async function editEmployeeId() {
-  closeDownloadDialog();
+  showDownloadDialog.value = false;
+  hasStartedDownload.value = false;
+  downloadStep.value = "download";
+  actionError.value = null;
   downloadReceiverEmpId.value = "";
   employeeId.value = "";
   await nextTick();
