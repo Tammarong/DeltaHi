@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import appDeltaHiLogoUrl from "~/assets/img/App_DeltaHi_Logo.png";
 import deltaLogoUrl from "~/assets/img/Delta_Logo.png";
+import firstpageloadingUrl from "~/assets/img/tutorials/Android/main.png";
 import androidTutorialStep1Url from "~/assets/img/tutorials/Android/An1.png";
 import androidTutorialStep2Url from "~/assets/img/tutorials/Android/An2.png";
 import androidTutorialStep3Url from "~/assets/img/tutorials/Android/An3.png";
@@ -77,6 +78,7 @@ const contactTeam = [
 ];
 
 const iosTutorialImages = [
+  firstpageloadingUrl,
   iosTutorialStep1Url,
   iosTutorialStep2Url,
   iosTutorialStep3Url,
@@ -86,6 +88,7 @@ const iosTutorialImages = [
 ];
 
 const androidTutorialImages = [
+  firstpageloadingUrl,
   androidTutorialStep1Url,
   androidTutorialStep2Url,
   androidTutorialStep3Url,
